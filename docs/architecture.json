@@ -1,0 +1,434 @@
+{
+  "schema_version": 1,
+  "task": "Initialize Pandera dataset validator; architecture adoption amendment",
+  "scope": [
+    "src/csv_dataset_validator",
+    "tests",
+    "pyproject.toml",
+    ".github/workflows/check.yml",
+    ".pre-commit-config.yaml",
+    "docs",
+    "README.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    ".gitignore",
+    ".python-version",
+    "uv.lock"
+  ],
+  "impact": "modules",
+  "rules": "AGENTS.md and the approved implementation plan govern the standalone API. Stable models/cell helpers support schema and geometry; optional media owns image reads; validation composes these; CSV/report adapters and CLI own outer I/O. Consumers are not dependencies. Preserve original data and positional lineage. This record adopts updated user requirements after the runtime implementation and its independent review; already-applied entries describe inspected code, not a retroactive planning claim.",
+  "modules": [
+    {
+      "id": "facade",
+      "path": "src/csv_dataset_validator/__init__.py",
+      "change": "add",
+      "already_applied": true,
+      "responsibility": "Expose the public API without configuring logging or opening files.",
+      "interface": "schema_for, validate_dataframe, validate_csv, issue/options/result and input error types.",
+      "layer": "Public import surface",
+      "allowed_dependencies": [
+        "csv_io",
+        "models",
+        "schema",
+        "validation"
+      ],
+      "forbidden_dependencies": [
+        "cli",
+        "reporting"
+      ],
+      "effects": "Imports only; CSV/image effects occur solely through explicit calls.",
+      "contracts": [
+        "facade",
+        "consumer-isolation"
+      ]
+    },
+    {
+      "id": "entrypoint",
+      "path": "src/csv_dataset_validator/__main__.py",
+      "change": "add",
+      "already_applied": true,
+      "responsibility": "Support python -m csv_dataset_validator.",
+      "interface": "Delegate to cli.main and exit with its status.",
+      "layer": "Process entrypoint",
+      "allowed_dependencies": [
+        "cli"
+      ],
+      "forbidden_dependencies": [
+        "consumer applications"
+      ],
+      "effects": "Runs the CLI only as the module entrypoint.",
+      "contracts": [
+        "layers",
+        "consumer-isolation"
+      ]
+    },
+    {
+      "id": "cells",
+      "path": "src/csv_dataset_validator/cells.py",
+      "change": "add",
+      "already_applied": true,
+      "responsibility": "Share null and exact integer/numeric cell semantics.",
+      "interface": "is_missing, number and integer accept original scalar cells without mutation.",
+      "layer": "Value helpers",
+      "allowed_dependencies": [
+        "Python scalar operations",
+        "NumPy",
+        "pandas"
+      ],
+      "forbidden_dependencies": [
+        "all other project modules"
+      ],
+      "effects": "No external effects.",
+      "contracts": [
+        "layers",
+        "consumer-isolation"
+      ]
+    },
+    {
+      "id": "models",
+      "path": "src/csv_dataset_validator/models.py",
+      "change": "add",
+      "already_applied": true,
+      "responsibility": "Own configuration, findings and result/lineage contracts.",
+      "interface": "Frozen Pydantic options/issues and ValidationResult containing original DataFrame subsets.",
+      "layer": "Stable contracts",
+      "allowed_dependencies": [
+        "Pydantic",
+        "pandas",
+        "Python standard library"
+      ],
+      "forbidden_dependencies": [
+        "all other project modules"
+      ],
+      "effects": "No external effects; DataFrames are owned by the result caller.",
+      "contracts": [
+        "layers",
+        "consumer-isolation"
+      ]
+    },
+    {
+      "id": "schema",
+      "path": "src/csv_dataset_validator/schema.py",
+      "change": "add",
+      "already_applied": true,
+      "responsibility": "Describe every known field and collect Pandera failures.",
+      "interface": "schema_for(profile), schema_issues(frame, profile); semantic noncoercing checks.",
+      "layer": "Field policy",
+      "allowed_dependencies": [
+        "models",
+        "cells",
+        "Pandera",
+        "pandas",
+        "NumPy",
+        "Python data operations"
+      ],
+      "forbidden_dependencies": [
+        "geometry",
+        "media",
+        "validation",
+        "CSV/report/CLI adapters"
+      ],
+      "effects": "No external effects; returns structured findings.",
+      "contracts": [
+        "layers",
+        "core-isolation",
+        "consumer-isolation"
+      ]
+    },
+    {
+      "id": "geometry",
+      "path": "src/csv_dataset_validator/geometry.py",
+      "change": "add",
+      "already_applied": true,
+      "responsibility": "Compare full rows and retained bounding-box representatives.",
+      "interface": "find_duplicates(frame, groups, threshold) returns positional issues; opaque/cyclic extras warn.",
+      "layer": "Geometry policy",
+      "allowed_dependencies": [
+        "models",
+        "pandas",
+        "NumPy",
+        "Python data operations"
+      ],
+      "forbidden_dependencies": [
+        "schema",
+        "media",
+        "validation",
+        "CSV/report/CLI adapters"
+      ],
+      "effects": "No external effects; original cells preserved.",
+      "contracts": [
+        "layers",
+        "core-isolation",
+        "consumer-isolation"
+      ]
+    },
+    {
+      "id": "media",
+      "path": "src/csv_dataset_validator/media.py",
+      "change": "add",
+      "already_applied": true,
+      "responsibility": "Resolve local paths and optionally inspect local image files.",
+      "interface": "resolve_image_path and inspect_images accept explicit options; absent Pillow raises an actionable input error only on request.",
+      "layer": "Optional media adapter",
+      "allowed_dependencies": [
+        "models",
+        "pandas",
+        "Pillow",
+        "Python path operations"
+      ],
+      "forbidden_dependencies": [
+        "schema",
+        "geometry",
+        "validation",
+        "CSV/report/CLI adapters"
+      ],
+      "effects": "Owns local image opening, decoding, EXIF dimensions and caching. Lazy Pillow import. No network.",
+      "contracts": [
+        "layers",
+        "core-isolation",
+        "consumer-isolation"
+      ]
+    },
+    {
+      "id": "validation",
+      "path": "src/csv_dataset_validator/validation.py",
+      "change": "add",
+      "already_applied": true,
+      "responsibility": "Compose field, image identity, bounds, quarantine and duplicate rules.",
+      "interface": "validate_dataframe(frame, *, profile, options) returns clean/broken subsets, all reasons and skipped checks.",
+      "layer": "Validation application",
+      "allowed_dependencies": [
+        "cells",
+        "models",
+        "schema",
+        "geometry",
+        "media",
+        "pandas",
+        "Python data/path/warning operations"
+      ],
+      "forbidden_dependencies": [
+        "csv_io",
+        "reporting",
+        "cli"
+      ],
+      "effects": "Emits optional Python warnings and performs lexical path normalization. With check_images=True, directly resolves local filesystem paths/symlinks for identity; image reads and decoding cross explicit media functions. This direct optional adapter edge is deliberate for the standalone local-only API.",
+      "contracts": [
+        "layers",
+        "core-isolation",
+        "consumer-isolation"
+      ]
+    },
+    {
+      "id": "csv-io",
+      "path": "src/csv_dataset_validator/csv_io.py",
+      "change": "add",
+      "already_applied": true,
+      "responsibility": "Load unambiguous CSV with lexical cells and the source directory.",
+      "interface": "validate_csv(path, *, profile, options) returns ValidationResult or DatasetInputError for unreadable/ambiguous input.",
+      "layer": "Input adapter",
+      "allowed_dependencies": [
+        "models",
+        "validation",
+        "pandas",
+        "Python CSV/path operations"
+      ],
+      "forbidden_dependencies": [
+        "reporting",
+        "cli"
+      ],
+      "effects": "Owns UTF-8 CSV reads; no inference, repair or remote access.",
+      "contracts": [
+        "layers",
+        "consumer-isolation"
+      ]
+    },
+    {
+      "id": "reporting",
+      "path": "src/csv_dataset_validator/reporting.py",
+      "change": "add",
+      "already_applied": true,
+      "responsibility": "Serialize results with collision-safe lineage fields.",
+      "interface": "report_dict(result), write_report(result, output_dir, overwrite=False) preserve existing files by default.",
+      "layer": "Output adapter",
+      "allowed_dependencies": [
+        "models",
+        "Python JSON/path/tempfile operations"
+      ],
+      "forbidden_dependencies": [
+        "csv_io",
+        "validation",
+        "cli"
+      ],
+      "effects": "Owns staged CSV/JSON writes and final local file installation.",
+      "contracts": [
+        "layers",
+        "report-isolation",
+        "consumer-isolation"
+      ]
+    },
+    {
+      "id": "cli",
+      "path": "src/csv_dataset_validator/cli.py",
+      "change": "add",
+      "already_applied": true,
+      "responsibility": "Compose argument parsing, validation and report output.",
+      "interface": "main(argv=None) returns 0 cleanup, 1 strict rejection, 2 input/structural/output error.",
+      "layer": "CLI composition",
+      "allowed_dependencies": [
+        "models",
+        "csv_io",
+        "reporting",
+        "Loguru",
+        "Pydantic",
+        "Python argparse/process operations"
+      ],
+      "forbidden_dependencies": [
+        "consumer applications"
+      ],
+      "effects": "Owns command-line input, stderr logging configuration and explicit report calls.",
+      "contracts": [
+        "layers",
+        "consumer-isolation"
+      ]
+    },
+    {
+      "id": "architecture-tests",
+      "path": "tests/test_architecture.py",
+      "change": "add",
+      "responsibility": "Exercise the actual import-linter contracts against isolated prohibited imports and check the package facade.",
+      "interface": "pytest tests return success only if valid imports pass and injected invalid dependencies fail.",
+      "layer": "Development verification",
+      "allowed_dependencies": [
+        "pytest",
+        "Python AST/path/subprocess/tempfile operations",
+        "installed import-linter"
+      ],
+      "forbidden_dependencies": [
+        "production imports of test helpers"
+      ],
+      "effects": "Writes only pytest temporary source trees and runs import-linter subprocesses; never mutates the real package.",
+      "contracts": [
+        "negative-contracts"
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "id": "core-isolation",
+      "path": "pyproject.toml",
+      "status": "existing",
+      "rules": "Validation/schema/geometry/media cannot import CLI, report output or CSV input, directly or transitively.",
+      "check": "imports"
+    },
+    {
+      "id": "layers",
+      "path": "pyproject.toml",
+      "status": "planned",
+      "rules": "Exhaustive module layers descend from __main__, cli, csv_io|reporting, validation, schema|geometry|media, cells|models. Same-level modules are independent; no upward dependencies.",
+      "check": "imports"
+    },
+    {
+      "id": "facade",
+      "path": "tests/test_architecture.py",
+      "status": "planned",
+      "rules": "The package facade imports only the four approved public API modules and has only docstring/import/export declarations; no import-time file/logging/process effects.",
+      "check": "import-tests"
+    },
+    {
+      "id": "negative-contracts",
+      "path": "tests/test_architecture.py",
+      "status": "planned",
+      "rules": "Mutated temporary package imports into outer I/O, across independent adapters and into models are rejected by the real linter; the real package remains unchanged.",
+      "check": "import-tests"
+    },
+    {
+      "id": "report-isolation",
+      "path": "pyproject.toml",
+      "status": "planned",
+      "rules": "The report-output adapter cannot import validation, directly or transitively; results arrive through the public result model.",
+      "check": "imports"
+    },
+    {
+      "id": "consumer-isolation",
+      "path": "tests/test_architecture.py",
+      "status": "planned",
+      "rules": "Every package source module prohibits imports of cveta2 and clearml_yolo, including aliases, submodules, type-only and lazy Import/ImportFrom statements. Current source has no dynamic import mechanism.",
+      "check": "import-tests"
+    }
+  ],
+  "checks": [
+    {
+      "id": "imports",
+      "kind": "imports",
+      "command": "uv run lint-imports",
+      "expectation": "All original and expanded import contracts pass for the actual source tree.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-12-verification.md"
+      }
+    },
+    {
+      "id": "import-tests",
+      "kind": "imports",
+      "command": "uv run pytest tests/test_architecture.py",
+      "expectation": "Real imports and facade pass, and prohibited injected dependency/import-time-effect cases fail their contracts.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-12-verification.md"
+      }
+    },
+    {
+      "id": "suite-312",
+      "kind": "behavior",
+      "command": "uv run --python 3.12 pytest",
+      "expectation": "Full behavior and architecture suite passes on the development interpreter.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-12-verification.md"
+      }
+    },
+    {
+      "id": "suite-310",
+      "kind": "behavior",
+      "command": "UV_PROJECT_ENVIRONMENT=.superpowers/verification/py310 uv run --python 3.10 --frozen pytest",
+      "expectation": "Full suite passes on the minimum supported interpreter; alternate isolated environment path may be selected for verification.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-12-verification.md"
+      }
+    },
+    {
+      "id": "quality",
+      "kind": "behavior",
+      "command": "uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run vulture && uv lock --check && uv build",
+      "expectation": "Lint, format, strict typing, dead-code, lock and build checks pass.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-12-verification.md"
+      }
+    },
+    {
+      "id": "documentation",
+      "kind": "documentation",
+      "command": "uv run pytest tests/test_architecture.py -k documentation",
+      "expectation": "Local Markdown links in root and docs resolve within the repository.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-12-verification.md"
+      }
+    }
+  ],
+  "documentation": "Preserve the original implementation plan, append this adoption amendment and link docs/architecture.json. Document layer/effect ownership and accepted review in dated verification evidence. README and integration/schema docs remain the public behavioral guides.",
+  "review": {
+    "status": "accepted",
+    "reviewer": "Independent read-only agent review_architecture_corrections (requested GPT-6.1 Sol/high; runtime settings not independently observable)",
+    "evidence": "docs/evidence/2026-10-12-verification.md",
+    "reconciliation": "Parent and fresh reviewer reconciled all 34 task-owned initial additions, 11 runtime modules, entrypoint/facade, tests, dependency/check configuration and documentation against this scope. No deletions, renames, unrelated changes or prior HEAD exist. Runtime remained unchanged during the architecture adoption amendment. Reporting and consumer independence are now executable; optional filesystem identity effects are recorded. Final docs updates record the accepted review without changing runtime or contracts."
+  }
+}

@@ -1,0 +1,92 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "csv-dataset-validator"
+version = "0.1.0"
+description = "Explainable Pandera validation and cleanup of cveta2 and clearml-yolo datasets"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "loguru>=0.7.3",
+    "pydantic>=2.10",
+    "pandera[pandas]>=0.34.1,<0.35",
+    "pandas>=2.1.1",
+    "numpy>=1.24.4",
+]
+
+[project.optional-dependencies]
+images = ["pillow>=10"]
+
+[project.scripts]
+csv-dataset-validator = "csv_dataset_validator.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/csv_dataset_validator"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "docs", "README.md", "AGENTS.md", "pyproject.toml", "uv.lock"]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.15",
+    "pandas-stubs>=2.1.1",
+    "pre-commit>=4",
+    "pytest>=8.3",
+    "pytest-xdist>=3.6",
+    "ruff>=0.15",
+    "vulture>=2.14",
+    "import-linter>=2",
+    "pillow>=10",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 110
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+files = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "-n", "4"]
+
+[tool.vulture]
+min_confidence = 80
+paths = ["src/csv_dataset_validator"]
+
+[tool.importlinter]
+root_packages = ["csv_dataset_validator"]
+include_external_packages = false
+
+[[tool.importlinter.contracts]]
+name = "Validation stays independent of command-line and report I/O"
+type = "forbidden"
+source_modules = ["csv_dataset_validator.validation", "csv_dataset_validator.schema", "csv_dataset_validator.geometry", "csv_dataset_validator.media"]
+forbidden_modules = ["csv_dataset_validator.cli", "csv_dataset_validator.reporting", "csv_dataset_validator.csv_io"]
+
+[[tool.importlinter.contracts]]
+name = "All modules follow independent downward layers"
+type = "layers"
+containers = ["csv_dataset_validator"]
+exhaustive = true
+layers = [
+    "__main__",
+    "cli",
+    "csv_io | reporting",
+    "validation",
+    "schema | geometry | media",
+    "cells | models",
+]
+
+[[tool.importlinter.contracts]]
+name = "Report output accepts results without invoking validation"
+type = "forbidden"
+source_modules = ["csv_dataset_validator.reporting"]
+forbidden_modules = ["csv_dataset_validator.validation"]

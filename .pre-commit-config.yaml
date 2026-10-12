@@ -1,0 +1,43 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --frozen ruff format --check
+        language: system
+        types: [python]
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --frozen ruff check
+        language: system
+        types: [python]
+      - id: mypy
+        name: strict typing
+        entry: uv run --frozen mypy
+        language: system
+        pass_filenames: false
+        files: '(^src/.*\.py$|^(pyproject\.toml|uv\.lock)$)'
+      - id: vulture
+        name: dead code
+        entry: uv run --frozen vulture
+        language: system
+        pass_filenames: false
+        files: '(^src/.*\.py$|^pyproject\.toml$)'
+      - id: architecture
+        name: import boundaries
+        entry: uv run --frozen lint-imports
+        language: system
+        pass_filenames: false
+        files: '(^src/.*\.py$|^pyproject\.toml$)'
+      - id: pytest
+        name: tests
+        entry: uv run --frozen pytest
+        language: system
+        pass_filenames: false
+        files: '(^((src|tests)/.*\.py$)|^(pyproject\.toml|uv\.lock)$)'
+      - id: uv-lock
+        name: lock freshness
+        entry: uv lock --check
+        language: system
+        pass_filenames: false
+        files: '^(pyproject\.toml|uv\.lock)$'
