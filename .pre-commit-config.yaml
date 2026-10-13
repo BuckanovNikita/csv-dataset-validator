@@ -1,6 +1,18 @@
+# Install with scripts/local_release.py --install-hooks to preserve dirty files
+# in the post-commit stage and refuse replacement of unrelated custom hooks.
+default_install_hook_types: [pre-commit]
+default_stages: [pre-commit]
+
 repos:
   - repo: local
     hooks:
+      - id: changelog
+        name: generate changelog from committed history
+        entry: uv run --locked --no-sync python scripts/local_release.py --changelog
+        language: system
+        always_run: true
+        pass_filenames: false
+        require_serial: true
       - id: ruff-format
         name: ruff format
         entry: uv run --frozen ruff format --check
@@ -16,13 +28,13 @@ repos:
         entry: uv run --frozen mypy
         language: system
         pass_filenames: false
-        files: '(^src/.*\.py$|^(pyproject\.toml|uv\.lock)$)'
+        files: '(^((src|scripts)/.*\.py$)|^(pyproject\.toml|uv\.lock)$)'
       - id: vulture
         name: dead code
         entry: uv run --frozen vulture
         language: system
         pass_filenames: false
-        files: '(^src/.*\.py$|^pyproject\.toml$)'
+        files: '(^((src|scripts)/.*\.py$)|^pyproject\.toml$)'
       - id: architecture
         name: import boundaries
         entry: uv run --frozen lint-imports
@@ -34,10 +46,19 @@ repos:
         entry: uv run --frozen pytest
         language: system
         pass_filenames: false
-        files: '(^((src|tests)/.*\.py$)|^(pyproject\.toml|uv\.lock)$)'
+        files: '(^((src|scripts|tests)/.*\.py$)|^(pyproject\.toml|uv\.lock|\.pre-commit-config\.yaml)$)'
       - id: uv-lock
         name: lock freshness
         entry: uv lock --check
         language: system
         pass_filenames: false
         files: '^(pyproject\.toml|uv\.lock)$'
+      - id: local-release
+        name: create local semantic release commit and tag
+        entry: uv run --locked --no-sync python scripts/local_release.py
+        args: [--post-commit]
+        language: system
+        stages: [post-commit]
+        always_run: true
+        pass_filenames: false
+        require_serial: true

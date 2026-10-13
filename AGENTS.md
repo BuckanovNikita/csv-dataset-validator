@@ -24,6 +24,17 @@ and checks the facade. Validate the architecture record with
 the shared module-architecture-planning skill at planning and acceptance checkpoints.
 
 README.md is Russian; other documentation is English. Maintain `docs/schema.md` and
-`docs/integration-plan.md` when public behavior changes. Record performance observations
-in dated evidence, not these instructions. No automated release or publishing workflow
-is established: finish authorized repository work with a task-scoped Conventional Commit.
+`docs/integration-plan.md` when public behavior changes. Record observations in dated
+evidence. For new tasks, keep an adjacent architecture record with the native plan;
+preserve the accepted records of completed work.
+
+Follow [the release workflow](docs/releases.md). Install its hooks with
+`uv run --locked --no-sync python scripts/local_release.py --install-hooks`.
+Conventional Commits on main automatically produce a checked local release commit
+and annotated version tag when unreleased history requires a bump. The pre-commit
+changelog hook may update CHANGELOG.md: inspect and stage it, then retry normally.
+Never bypass checks or manually edit version fields. Post-commit failures retain
+the contributor commit; inspect the reported recovery state and use the documented
+retry command. Complete authorized releases by pushing main and the explicit version
+tags after verification. Publish Git tags only: no GitHub Releases, assets or packages.
+The hook itself never pushes. Release tooling stays outside the validator runtime.

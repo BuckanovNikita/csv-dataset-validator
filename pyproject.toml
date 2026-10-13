@@ -26,7 +26,7 @@ csv-dataset-validator = "csv_dataset_validator.cli:main"
 packages = ["src/csv_dataset_validator"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src", "tests", "docs", "README.md", "AGENTS.md", "pyproject.toml", "uv.lock"]
+include = ["src", "scripts", "tests", "docs", "README.md", "CHANGELOG.md", "AGENTS.md", ".pre-commit-config.yaml", "pyproject.toml", "uv.lock"]
 
 [dependency-groups]
 dev = [
@@ -39,6 +39,11 @@ dev = [
     "vulture>=2.14",
     "import-linter>=2",
     "pillow>=10",
+    "python-semantic-release>=10.6.1,<11",
+    # Also installed on newer interpreters for mypy's Python 3.10 target.
+    "tomli>=2",
+    "pyyaml>=6",
+    "types-pyyaml>=6",
 ]
 
 [tool.ruff]
@@ -51,7 +56,7 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 [tool.mypy]
 python_version = "3.10"
 strict = true
-files = ["src"]
+files = ["src", "scripts"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -59,7 +64,7 @@ addopts = ["-ra", "--strict-markers", "-n", "4"]
 
 [tool.vulture]
 min_confidence = 80
-paths = ["src/csv_dataset_validator"]
+paths = ["src/csv_dataset_validator", "scripts"]
 
 [tool.importlinter]
 root_packages = ["csv_dataset_validator"]
@@ -90,3 +95,32 @@ name = "Report output accepts results without invoking validation"
 type = "forbidden"
 source_modules = ["csv_dataset_validator.reporting"]
 forbidden_modules = ["csv_dataset_validator.validation"]
+
+[tool.semantic_release]
+commit_parser = "conventional"
+version_toml = ["pyproject.toml:project.version"]
+tag_format = "v{version}"
+allow_zero_version = true
+major_on_zero = false
+commit_message = "chore(release): {version}"
+no_git_verify = false
+
+[tool.semantic_release.branches.main]
+match = "^main$"
+prerelease = false
+
+[tool.semantic_release.remote]
+ignore_token_for_push = true
+
+[tool.semantic_release.changelog]
+mode = "init"
+exclude_commit_patterns = ['^chore\(release\):']
+
+[tool.semantic_release.changelog.default_templates]
+changelog_file = "CHANGELOG.md"
+output_format = "md"
+mask_initial_release = false
+
+[tool.semantic_release.publish]
+upload_to_vcs_release = false
+dist_glob_patterns = []

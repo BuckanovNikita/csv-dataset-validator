@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "task": "Automatic local semantic releases and public Git repository",
+  "scope": [
+    "scripts/local_release.py",
+    "tests/test_local_release.py",
+    "tests/test_release_architecture.py",
+    "pyproject.toml",
+    "uv.lock",
+    ".pre-commit-config.yaml",
+    ".github/workflows/check.yml",
+    "AGENTS.md",
+    "README.md",
+    "CHANGELOG.md",
+    "docs/releases.md",
+    "docs/plans/semantic-releases",
+    "docs/evidence/2026-10-13-semantic-releases.md"
+  ],
+  "impact": "modules",
+  "rules": "Adapt the user's selected clearml-yolo local post-commit workflow to main and Python >=3.10. Release tooling stays outside the installed validator. Only Conventional Commit-derived version metadata, generated changelog, checked release commits and annotated Git tags may change. The hook never fetches, pushes, publishes packages, creates GitHub Releases or replaces existing refs. Preserve the existing runtime contracts and completed architecture record.",
+  "modules": [
+    {
+      "id": "release-helper",
+      "path": "scripts/local_release.py",
+      "change": "add",
+      "responsibility": "Coordinate guarded local release preparation, checked commits, annotated tags, retries, changelog refresh and hook installation.",
+      "interface": "python scripts/local_release.py [--install-hooks | --post-commit | --changelog]; exit 0 completes or explains a safe skip; exit 1 retains work and explains retry. Main-only releases; full history and baseline tag required.",
+      "layer": "Development Git adapter",
+      "allowed_dependencies": [
+        "Python standard library",
+        "Pydantic",
+        "Loguru",
+        "tomli on Python 3.10",
+        "Git/pre-commit/PSR subprocess entrypoints"
+      ],
+      "forbidden_dependencies": [
+        "csv_dataset_validator runtime modules",
+        "cveta2",
+        "clearml_yolo"
+      ],
+      "effects": "Owns local Git/process/filesystem effects, private Git recovery/locking metadata, and only pyproject.toml/uv.lock/CHANGELOG.md tracked writes. Explicit no-push/no-vcs-release/no-build PSR flags; hooks retain ordinary quality gates.",
+      "contracts": [
+        "tooling-isolation"
+      ]
+    },
+    {
+      "id": "release-policy",
+      "path": "pyproject.toml",
+      "change": "modify",
+      "responsibility": "Declare dev-only PSR dependency, conventional parser, main branch, zero-major policy, version source and changelog.",
+      "interface": "PSR config writes pyproject project.version; helper updates only the root lock version, generates changelog and retains checked commits.",
+      "layer": "Development configuration",
+      "allowed_dependencies": [
+        "PSR 10.x",
+        "existing project development tools"
+      ],
+      "forbidden_dependencies": [
+        "release tooling in runtime dependencies",
+        "registry or GitHub Release publication"
+      ],
+      "effects": "Configuration is consumed by the explicit helper; no import-time effects.",
+      "contracts": [
+        "tooling-isolation",
+        "release-policy"
+      ]
+    },
+    {
+      "id": "hooks",
+      "path": ".pre-commit-config.yaml",
+      "change": "modify",
+      "responsibility": "Keep quality/changelog checks pre-commit-only and invoke local releases post-commit-only.",
+      "interface": "Project-owned --install-hooks launcher invokes post-commit with --all-files so dirty tracked changes cannot be hidden.",
+      "layer": "Local Git composition",
+      "allowed_dependencies": [
+        "scripts/local_release.py",
+        "existing quality commands"
+      ],
+      "forbidden_dependencies": [
+        "publication commands",
+        "quality bypasses"
+      ],
+      "effects": "Runs installed local checks and hook; no remote publication.",
+      "contracts": [
+        "release-policy"
+      ]
+    },
+    {
+      "id": "ci",
+      "path": ".github/workflows/check.yml",
+      "change": "modify",
+      "responsibility": "Continue verification on Python3.10/3.12 using full Git history for release-related checks.",
+      "interface": "Push/PR checks use locked dev dependencies and existing check commands.",
+      "layer": "Remote verification composition",
+      "allowed_dependencies": [
+        "checkout",
+        "setup-uv",
+        "project quality commands"
+      ],
+      "forbidden_dependencies": [
+        "automatic GitHub Release creation",
+        "artifact upload",
+        "registry publication"
+      ],
+      "effects": "Reads checked-out repository and runs tests/builds; read-only repository permissions.",
+      "contracts": [
+        "release-policy"
+      ]
+    },
+    {
+      "id": "release-tests",
+      "path": "tests/test_local_release.py",
+      "change": "add",
+      "responsibility": "Exercise real Git/PSR/hooks and failure recovery inside temporary repositories.",
+      "interface": "pytest cases cover semantic bumps, first baseline, no-op, failures, dirty/index preservation, retries, branch/history guards and unchanged dependencies.",
+      "layer": "Development acceptance",
+      "allowed_dependencies": [
+        "pytest",
+        "PyYAML",
+        "standard library",
+        "release helper"
+      ],
+      "forbidden_dependencies": [
+        "mutating real or consumer Git histories",
+        "network-dependent fixtures"
+      ],
+      "effects": "Creates only test-owned repositories with no-network fake origin metadata, isolating enclosing Git environment.",
+      "contracts": [
+        "tooling-isolation",
+        "release-policy"
+      ]
+    },
+    {
+      "id": "architecture-tests",
+      "path": "tests/test_release_architecture.py",
+      "change": "add",
+      "responsibility": "Enforce release tooling/runtime separation and explicit publication policy.",
+      "interface": "pytest validates current imports/configuration and rejects injected prohibited edges or unsafe release flags.",
+      "layer": "Development verification",
+      "allowed_dependencies": [
+        "pytest",
+        "AST",
+        "TOML/YAML parsers",
+        "standard library"
+      ],
+      "forbidden_dependencies": [
+        "runtime import of test helpers"
+      ],
+      "effects": "Reads source/config and evaluates isolated negative fixtures; no real Git mutations.",
+      "contracts": [
+        "tooling-isolation",
+        "release-policy"
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "id": "tooling-isolation",
+      "path": "tests/test_release_architecture.py",
+      "status": "planned",
+      "rules": "Release helper cannot import validator/consumer runtime; runtime cannot import scripts or semantic_release; release packages stay dev-only. Negative import/dependency controls must fail.",
+      "check": "architecture"
+    },
+    {
+      "id": "release-policy",
+      "path": "tests/test_release_architecture.py",
+      "status": "planned",
+      "rules": "Main-only zero-major conventional releases; quality pre-commit stages preserved, post-commit --all-files launcher, explicit PSR no-build/no-push/no-vcs-release and no publish command. Negative policy controls must fail.",
+      "check": "architecture"
+    }
+  ],
+  "checks": [
+    {
+      "id": "architecture",
+      "kind": "imports",
+      "command": "uv run pytest tests/test_release_architecture.py && uv run lint-imports",
+      "expectation": "New positive/negative release boundaries pass and all existing runtime import contracts stay kept.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-13-semantic-releases.md"
+      }
+    },
+    {
+      "id": "behavior",
+      "kind": "behavior",
+      "command": "uv run pytest",
+      "expectation": "All existing validator and real local release integration tests pass on Python3.12; repeat on3.10 in an isolated task-owned environment.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-13-semantic-releases.md"
+      }
+    },
+    {
+      "id": "quality",
+      "kind": "behavior",
+      "command": "uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run vulture && uv lock --check && uv build",
+      "expectation": "Quality, typing, lock and packaging pass; release helper is typed and excluded from installed runtime wheel.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-13-semantic-releases.md"
+      }
+    },
+    {
+      "id": "documentation",
+      "kind": "documentation",
+      "command": "uv run pytest tests/test_architecture.py -k documentation",
+      "expectation": "Release docs and task-record links resolve; documented hook/retry commands match exercised entrypoints.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-13-semantic-releases.md"
+      }
+    }
+  ],
+  "documentation": "Add docs/releases.md and Russian README usage, replace AGENTS no-release rule, preserve original architecture/history and link this task's adjacent record. Record tested reference versions, review and limitations in dated evidence.",
+  "review": {
+    "status": "accepted",
+    "reviewer": "Independent read-only agent review_semantic_releases (requested GPT-6.1 Sol/high; runtime settings not independently observable)",
+    "evidence": "docs/evidence/2026-10-13-semantic-releases.md",
+    "reconciliation": "Compared all 14 task-owned added/modified paths against clean base6dc52fa. Source runtime, original completed architecture record and consumer repositories remain unchanged. No unrelated staged/unstaged paths, removals or renames. Helper effects, dev dependencies, hook/CI composition and tests match recorded responsibilities and executable boundaries. Final evidence updates record accepted review without changing behavior. Generated version/changelog changes at release are validated by the tested helper."
+  }
+}
