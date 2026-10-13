@@ -1,6 +1,18 @@
 # CHANGELOG
 
 
+## v0.3.0 (2026-10-13)
+
+### Features
+
+- Rename package and repository to ed-killer
+  ([`e48290b`](https://github.com/BuckanovNikita/ed-killer/commit/e48290b6307de2214ed9f684ee6a2ffcf31e20f7))
+
+### Breaking Changes
+
+- Use the ed-killer distribution and command, and import ed_killer instead of csv_dataset_validator.
+
+
 ## v0.2.0 (2026-10-13)
 
 ### Features
