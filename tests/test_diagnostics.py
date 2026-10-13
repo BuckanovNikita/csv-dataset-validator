@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from csv_dataset_validator import ValidationOptions, validate_dataframe
+from ed_killer import ValidationOptions, validate_dataframe
 
 
 def test_bad_coordinate_reason_explains_required_value():

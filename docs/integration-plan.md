@@ -55,7 +55,7 @@ Example at an already completed fetch boundary (no service calls are required by
 the validator):
 
 ```python
-from csv_dataset_validator import ValidationOptions, validate_dataframe
+from ed_killer import ValidationOptions, validate_dataframe
 
 validation = validate_dataframe(
     partition.dataset,
@@ -94,7 +94,7 @@ warning, matching current conversion geometry rather than rotated polygon IoU.
    boxes, reserved labels and unique IDs is not the standalone ground-truth contract.
 
 ```python
-from csv_dataset_validator import ValidationOptions, validate_csv
+from ed_killer import ValidationOptions, validate_csv
 
 validation = validate_csv(
     source_csv,

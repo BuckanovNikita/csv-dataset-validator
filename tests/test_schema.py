@@ -5,8 +5,8 @@ import pandas as pd
 import pandera.pandas as pa
 import pytest
 
-from csv_dataset_validator.cells import integer, is_missing, number
-from csv_dataset_validator.schema import schema_for, schema_issues
+from ed_killer.cells import integer, is_missing, number
+from ed_killer.schema import schema_for, schema_issues
 
 
 def box(**updates: object) -> dict[str, object]:

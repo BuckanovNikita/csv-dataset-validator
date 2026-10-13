@@ -9,9 +9,9 @@ from typing import cast
 from loguru import logger
 from pydantic import ValidationError
 
-from csv_dataset_validator.csv_io import validate_csv
-from csv_dataset_validator.models import DatasetInputError, Profile, ValidationOptions
-from csv_dataset_validator.reporting import write_report
+from ed_killer.csv_io import validate_csv
+from ed_killer.models import DatasetInputError, Profile, ValidationOptions
+from ed_killer.reporting import write_report
 
 
 def main(argv: Sequence[str] | None = None) -> int:

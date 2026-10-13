@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGE = "csv_dataset_validator"
+PACKAGE = "ed_killer"
 
 
 def facade_violations(source: str) -> list[str]:
@@ -50,7 +50,7 @@ def test_public_facade_has_no_composition_effects():
 @pytest.mark.parametrize(
     "source",
     [
-        "from csv_dataset_validator.cli import main",
+        "from ed_killer.cli import main",
         "import logging; logging.basicConfig()",
         "__all__ = open('dataset.csv').read()",
     ],
@@ -63,11 +63,11 @@ def test_facade_contract_rejects_effects_and_cli_imports(source):
     ("module", "injected_source"),
     [
         (None, ""),
-        ("schema", "from csv_dataset_validator.csv_io import validate_csv"),
-        ("reporting", "from csv_dataset_validator.csv_io import validate_csv"),
-        ("reporting", "from csv_dataset_validator.validation import validate_dataframe"),
-        ("models", "from csv_dataset_validator.geometry import find_duplicates"),
-        ("geometry", "from csv_dataset_validator.media import inspect_images"),
+        ("schema", "from ed_killer.csv_io import validate_csv"),
+        ("reporting", "from ed_killer.csv_io import validate_csv"),
+        ("reporting", "from ed_killer.validation import validate_dataframe"),
+        ("models", "from ed_killer.geometry import find_duplicates"),
+        ("geometry", "from ed_killer.media import inspect_images"),
     ],
 )
 def test_import_contracts_reject_prohibited_edges(tmp_path, module, injected_source):

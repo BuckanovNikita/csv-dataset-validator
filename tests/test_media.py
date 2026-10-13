@@ -8,8 +8,8 @@ import pandas as pd
 import pytest
 from PIL import Image
 
-from csv_dataset_validator.media import inspect_images, resolve_image_path
-from csv_dataset_validator.models import DatasetInputError, ValidationOptions
+from ed_killer.media import inspect_images, resolve_image_path
+from ed_killer.models import DatasetInputError, ValidationOptions
 
 
 def test_relative_paths_use_base_dir_and_blank_paths_use_image_root(tmp_path: Path) -> None:
@@ -83,7 +83,7 @@ def test_disabled_checks_do_not_import_pillow_or_touch_images(monkeypatch: pytes
     monkeypatch.setattr(builtins, "__import__", without_pillow)
     frame = pd.DataFrame({"image_name": ["absent.png"]})
     assert inspect_images(frame, profile="cveta2", options=ValidationOptions()) == ({}, [])
-    with pytest.raises(DatasetInputError, match=r"csv-dataset-validator\[images\]"):
+    with pytest.raises(DatasetInputError, match=r"ed-killer\[images\]"):
         inspect_images(frame, profile="cveta2", options=ValidationOptions(check_images=True))
 
 

@@ -23,7 +23,7 @@ def row(name="a.jpg", **overrides):
 
 
 def validate(rows, **kwargs):
-    from csv_dataset_validator import ValidationOptions, validate_dataframe
+    from ed_killer import ValidationOptions, validate_dataframe
 
     return validate_dataframe(
         pd.DataFrame(rows), profile="clearml-yolo", options=ValidationOptions(emit_warnings=False), **kwargs
@@ -54,7 +54,7 @@ def test_quarantine_precedes_duplicate_removal():
 
 
 def test_outside_bounds_is_recoverable_whole_image_rejection():
-    from csv_dataset_validator import DatasetWarning, validate_dataframe
+    from ed_killer import DatasetWarning, validate_dataframe
 
     with pytest.warns(DatasetWarning, match="reject"):
         result = validate_dataframe(pd.DataFrame([row(bbox_x_br=101), row()]), profile="clearml-yolo")
@@ -74,7 +74,7 @@ def test_malformed_annotation_quarantines_only_its_task():
 
 
 def test_original_indices_values_and_unknown_container_columns_survive():
-    from csv_dataset_validator import DatasetWarning, validate_dataframe
+    from ed_killer import DatasetWarning, validate_dataframe
 
     frame = pd.DataFrame(
         [row(instance_label="001", extra={"a": [1]}), row("b.jpg", extra={"a": [2]})], index=[7, 7]
@@ -123,7 +123,7 @@ def test_path_basename_must_match_image_name():
 
 
 def test_missing_columns_return_structural_report_without_throwing():
-    from csv_dataset_validator import ValidationOptions, validate_dataframe
+    from ed_killer import ValidationOptions, validate_dataframe
 
     result = validate_dataframe(
         pd.DataFrame({"image_name": ["a.jpg"]}),
@@ -139,7 +139,7 @@ def test_missing_columns_return_structural_report_without_throwing():
 
 
 def test_cveta_optional_identity_uses_first_nonmissing_owner():
-    from csv_dataset_validator import ValidationOptions, validate_dataframe
+    from ed_killer import ValidationOptions, validate_dataframe
 
     records = [
         row(instance_shape="box", task_id=1, image_path=None, split=None),
@@ -159,7 +159,7 @@ def test_large_distinct_integer_task_ids_are_not_rounded_into_one_task():
 
 
 def test_valid_empty_table_is_successful_and_warns():
-    from csv_dataset_validator import DatasetWarning, validate_dataframe
+    from ed_killer import DatasetWarning, validate_dataframe
 
     with pytest.warns(DatasetWarning, match="empty"):
         result = validate_dataframe(pd.DataFrame(columns=row()), profile="clearml-yolo")
@@ -174,7 +174,7 @@ def test_rotation_warns_and_still_uses_axis_aligned_iou():
 
 
 def test_cleanup_is_idempotent_and_never_mutates_input():
-    from csv_dataset_validator import ValidationOptions, validate_dataframe
+    from ed_killer import ValidationOptions, validate_dataframe
 
     frame = pd.DataFrame([row(), row(), row("b.jpg", bbox_x_br=-1), row("b.jpg"), row("c.jpg")])
     original = frame.copy(deep=True)
@@ -189,7 +189,7 @@ def test_cleanup_is_idempotent_and_never_mutates_input():
 def test_media_dimensions_are_used_and_mismatch_quarantines(tmp_path):
     from PIL import Image
 
-    from csv_dataset_validator import ValidationOptions, validate_dataframe
+    from ed_killer import ValidationOptions, validate_dataframe
 
     Image.new("RGB", (20, 30)).save(tmp_path / "a.jpg")
     options = ValidationOptions(check_images=True, base_dir=tmp_path, emit_warnings=False)

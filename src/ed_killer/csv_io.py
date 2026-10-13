@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from csv_dataset_validator.models import DatasetInputError, Profile, ValidationOptions, ValidationResult
-from csv_dataset_validator.validation import validate_dataframe
+from ed_killer.models import DatasetInputError, Profile, ValidationOptions, ValidationResult
+from ed_killer.validation import validate_dataframe
 
 
 def validate_csv(

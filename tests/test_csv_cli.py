@@ -4,6 +4,8 @@ import csv
 import json
 import subprocess
 import sys
+import sysconfig
+from pathlib import Path
 
 import pytest
 
@@ -26,9 +28,14 @@ def write_csv(path, rows, header=HEADER):
         writer.writerows(rows)
 
 
-def run_cli(*args):
+def run_cli(*args, entrypoint="module"):
+    if entrypoint == "console":
+        suffix = ".exe" if sys.platform == "win32" else ""
+        command = [str(Path(sysconfig.get_path("scripts")) / f"ed-killer{suffix}")]
+    else:
+        command = [sys.executable, "-m", "ed_killer"]
     return subprocess.run(
-        [sys.executable, "-m", "csv_dataset_validator", *map(str, args)],
+        [*command, *map(str, args)],
         capture_output=True,
         text=True,
         check=False,
@@ -37,7 +44,7 @@ def run_cli(*args):
 
 @pytest.mark.parametrize("label", ["001", "NA", "None", "null", "1.0", "label\nnext"])
 def test_csv_labels_are_preserved_exactly(tmp_path, label):
-    from csv_dataset_validator import ValidationOptions, validate_csv
+    from ed_killer import ValidationOptions, validate_csv
 
     path = tmp_path / "input.csv"
     write_csv(path, [["a.jpg", "a.jpg", label, 0, 0, 10, 10, "train"]])
@@ -58,7 +65,7 @@ def test_csv_labels_are_preserved_exactly(tmp_path, label):
     ],
 )
 def test_unusable_csv_is_not_silently_repaired(tmp_path, text):
-    from csv_dataset_validator import DatasetInputError, validate_csv
+    from ed_killer import DatasetInputError, validate_csv
 
     path = tmp_path / "broken.csv"
     path.write_text(text)
@@ -66,11 +73,12 @@ def test_unusable_csv_is_not_silently_repaired(tmp_path, text):
         validate_csv(path, profile="clearml-yolo")
 
 
-def test_cli_writes_clean_broken_and_json_with_reasons(tmp_path):
+@pytest.mark.parametrize("entrypoint", ["module", "console"])
+def test_cli_writes_clean_broken_and_json_with_reasons(tmp_path, entrypoint):
     source = tmp_path / "input.csv"
     write_csv(source, [["a.jpg", "a.jpg", "cat", 0, 0, 10, 10, "train"]] * 2)
     output = tmp_path / "output"
-    result = run_cli(source, "--profile", "clearml-yolo", "--output-dir", output)
+    result = run_cli(source, "--profile", "clearml-yolo", "--output-dir", output, entrypoint=entrypoint)
     assert result.returncode == 0, result.stderr
     with (output / "clean.csv").open() as stream:
         assert len(list(csv.DictReader(stream))) == 1
@@ -79,11 +87,13 @@ def test_cli_writes_clean_broken_and_json_with_reasons(tmp_path):
     report = json.loads((output / "report.json").read_text())
     assert report["counts"]["broken_rows"] == 1
     assert "duplicate_row" in rejected[0][report["metadata_columns"]["reason_codes"]]
-    strict = run_cli(source, "--profile", "clearml-yolo", "--fail-on-invalid")
+    strict = run_cli(source, "--profile", "clearml-yolo", "--fail-on-invalid", entrypoint=entrypoint)
     assert strict.returncode == 1
-    refused = run_cli(source, "--profile", "clearml-yolo", "--output-dir", output)
+    refused = run_cli(source, "--profile", "clearml-yolo", "--output-dir", output, entrypoint=entrypoint)
     assert refused.returncode == 2
-    overwritten = run_cli(source, "--profile", "clearml-yolo", "--output-dir", output, "--overwrite")
+    overwritten = run_cli(
+        source, "--profile", "clearml-yolo", "--output-dir", output, "--overwrite", entrypoint=entrypoint
+    )
     assert overwritten.returncode == 0
 
 

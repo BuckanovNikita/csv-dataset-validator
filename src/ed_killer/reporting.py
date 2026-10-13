@@ -7,7 +7,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
 
-from csv_dataset_validator.models import Issue, ValidationResult
+from ed_killer.models import Issue, ValidationResult
 
 
 def _metadata_names(columns: list[str]) -> dict[str, str]:

@@ -41,9 +41,7 @@ def inspect_images(
     except ModuleNotFoundError as error:
         if error.name != "PIL" and not (error.name or "").startswith("PIL."):
             raise
-        raise DatasetInputError(
-            "Local image checks require Pillow; install 'csv-dataset-validator[images]'."
-        ) from error
+        raise DatasetInputError("Local image checks require Pillow; install 'ed-killer[images]'.") from error
 
     sizes: dict[int, tuple[int, int]] = {}
     issues: list[Issue] = []

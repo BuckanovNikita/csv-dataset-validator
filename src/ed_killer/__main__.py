@@ -1,5 +1,5 @@
 """Module entry point."""
 
-from csv_dataset_validator.cli import main
+from ed_killer.cli import main
 
 raise SystemExit(main())

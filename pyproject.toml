@@ -3,7 +3,7 @@ requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
-name = "csv-dataset-validator"
+name = "ed-killer"
 version = "0.2.0"
 description = "Explainable Pandera validation and cleanup of cveta2 and clearml-yolo datasets"
 readme = "README.md"
@@ -20,10 +20,10 @@ dependencies = [
 images = ["pillow>=10"]
 
 [project.scripts]
-csv-dataset-validator = "csv_dataset_validator.cli:main"
+ed-killer = "ed_killer.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/csv_dataset_validator"]
+packages = ["src/ed_killer"]
 
 [tool.hatch.build.targets.sdist]
 include = ["src", "scripts", "tests", "docs", "README.md", "CHANGELOG.md", "AGENTS.md", ".pre-commit-config.yaml", "pyproject.toml", "uv.lock"]
@@ -64,22 +64,22 @@ addopts = ["-ra", "--strict-markers", "-n", "4"]
 
 [tool.vulture]
 min_confidence = 80
-paths = ["src/csv_dataset_validator", "scripts"]
+paths = ["src/ed_killer", "scripts"]
 
 [tool.importlinter]
-root_packages = ["csv_dataset_validator"]
+root_packages = ["ed_killer"]
 include_external_packages = false
 
 [[tool.importlinter.contracts]]
 name = "Validation stays independent of command-line and report I/O"
 type = "forbidden"
-source_modules = ["csv_dataset_validator.validation", "csv_dataset_validator.schema", "csv_dataset_validator.geometry", "csv_dataset_validator.media"]
-forbidden_modules = ["csv_dataset_validator.cli", "csv_dataset_validator.reporting", "csv_dataset_validator.csv_io"]
+source_modules = ["ed_killer.validation", "ed_killer.schema", "ed_killer.geometry", "ed_killer.media"]
+forbidden_modules = ["ed_killer.cli", "ed_killer.reporting", "ed_killer.csv_io"]
 
 [[tool.importlinter.contracts]]
 name = "All modules follow independent downward layers"
 type = "layers"
-containers = ["csv_dataset_validator"]
+containers = ["ed_killer"]
 exhaustive = true
 layers = [
     "__main__",
@@ -93,8 +93,8 @@ layers = [
 [[tool.importlinter.contracts]]
 name = "Report output accepts results without invoking validation"
 type = "forbidden"
-source_modules = ["csv_dataset_validator.reporting"]
-forbidden_modules = ["csv_dataset_validator.validation"]
+source_modules = ["ed_killer.reporting"]
+forbidden_modules = ["ed_killer.validation"]
 
 [tool.semantic_release]
 commit_parser = "conventional"

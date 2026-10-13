@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 
 def test_options_reject_invalid_threshold_and_unknown_settings():
-    from csv_dataset_validator.models import ValidationOptions
+    from ed_killer.models import ValidationOptions
 
     for threshold in (0, -1, 1.1, float("nan"), float("inf")):
         with pytest.raises(ValidationError):
@@ -16,7 +16,7 @@ def test_options_reject_invalid_threshold_and_unknown_settings():
 
 
 def test_result_reasons_use_positions_instead_of_duplicate_index_labels():
-    from csv_dataset_validator.models import Issue, ValidationResult
+    from ed_killer.models import Issue, ValidationResult
 
     result = ValidationResult(
         profile="cveta2",

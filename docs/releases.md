@@ -98,3 +98,12 @@ automatic hooks. Do not recreate bootstrap tags in subsequent checkouts. The int
 and its acceptance are recorded in the [task plan](plans/semantic-releases/plan.md).
 The [PSR CLI reference](https://python-semantic-release.readthedocs.io/en/stable/api/commands.html)
 documents the upstream commands wrapped by the helper.
+
+## Repository and package rename
+
+The repository and distribution are `ed-killer`; the Python package is `ed_killer`.
+Existing Git history and version tags continue in the renamed repository.
+The release helper intentionally retains its original private hook marker, environment
+guard and Git-directory lock/recovery filenames. These are persistent coordination
+identifiers, so changing them would split locks or hide pending recovery records
+from existing hooks. They are not installed package or CLI names.

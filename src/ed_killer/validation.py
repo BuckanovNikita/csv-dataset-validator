@@ -10,17 +10,17 @@ from typing import cast
 
 import pandas as pd
 
-from csv_dataset_validator.cells import is_missing, number
-from csv_dataset_validator.geometry import find_duplicates
-from csv_dataset_validator.media import inspect_images, resolve_image_path
-from csv_dataset_validator.models import (
+from ed_killer.cells import is_missing, number
+from ed_killer.geometry import find_duplicates
+from ed_killer.media import inspect_images, resolve_image_path
+from ed_killer.models import (
     DatasetWarning,
     Issue,
     Profile,
     ValidationOptions,
     ValidationResult,
 )
-from csv_dataset_validator.schema import BOX_COLUMNS, KNOWN_COLUMNS, schema_issues
+from ed_killer.schema import BOX_COLUMNS, KNOWN_COLUMNS, schema_issues
 
 
 def _group_rows(frame: pd.DataFrame) -> tuple[list[tuple[int, ...]], list[Issue]]:

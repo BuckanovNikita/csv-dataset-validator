@@ -10,8 +10,8 @@ import numpy as np
 import pandas as pd
 import pandera.pandas as pa
 
-from csv_dataset_validator.cells import integer, is_missing, number
-from csv_dataset_validator.models import Issue, Profile
+from ed_killer.cells import integer, is_missing, number
+from ed_killer.models import Issue, Profile
 
 BOX_COLUMNS = ("bbox_x_tl", "bbox_y_tl", "bbox_x_br", "bbox_y_br")
 CVETA_COLUMNS = (

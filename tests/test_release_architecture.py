@@ -194,14 +194,12 @@ def ci_policy_violations(config: dict) -> list[str]:
 
 def test_release_helper_and_runtime_have_independent_imports():
     helper = (ROOT / "scripts/local_release.py").read_text()
-    assert prohibited_imports(helper, {"csv_dataset_validator", "cveta2", "clearml_yolo"}) == []
-    for source in (ROOT / "src/csv_dataset_validator").rglob("*.py"):
+    assert prohibited_imports(helper, {"ed_killer", "cveta2", "clearml_yolo"}) == []
+    for source in (ROOT / "src/ed_killer").rglob("*.py"):
         assert prohibited_imports(source.read_text(), {"scripts", "semantic_release"}) == [], source
 
 
-@pytest.mark.parametrize(
-    "module", ["csv_dataset_validator", "cveta2", "clearml_yolo", "scripts", "semantic_release"]
-)
+@pytest.mark.parametrize("module", ["ed_killer", "cveta2", "clearml_yolo", "scripts", "semantic_release"])
 @pytest.mark.parametrize(
     "statement",
     [

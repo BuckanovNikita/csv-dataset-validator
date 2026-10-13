@@ -1,4 +1,4 @@
-# CSV Dataset Validator
+# ED Killer
 
 Portable Python library and CLI for cveta2 and clearml-yolo annotation CSVs.
 Use uv and the checked-in lockfile. Develop on Python 3.12; preserve Python 3.10 compatibility.
@@ -17,7 +17,8 @@ Run `uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .`,
 Use meaningful behavioral tests; preserve unrelated work.
 
 Maintain the module responsibilities and dependency/effect ownership recorded in
-`docs/architecture.json`, linked from the implementation plan. Import-linter enforces
+`docs/plans/rename-ed-killer/architecture.json`, linked from its implementation plan.
+The original `docs/architecture.json` remains historical. Import-linter enforces
 exhaustive independent layers and output-only reporting; `tests/test_architecture.py`
 exercises prohibited imports in temporary source copies, rejects consumer dependencies
 and checks the facade. Validate the architecture record with

@@ -1,8 +1,12 @@
-# CSV Dataset Validator
+# ED Killer
 
 Валидатор CSV и pandas DataFrame для датасетов cveta2 и clearml-yolo на основе Pandera.
 Возвращает очищенные данные, отклонённые строки и все причины отклонения.
 Неизвестные столбцы сохраняются с предупреждением.
+
+Пакет и команда называются `ed-killer`, модуль Python — `ed_killer`.
+При переходе с `csv-dataset-validator` замените имя зависимости и команды,
+а в импортах — `csv_dataset_validator` на `ed_killer`. Старые имена не поддерживаются.
 
 ## Установка
 
@@ -10,7 +14,7 @@ Python 3.10 или новее. Для работы из репозитория:
 
 ```bash
 uv sync --dev
-uv run csv-dataset-validator --help
+uv run ed-killer --help
 ```
 
 Проверка файлов изображений необязательна:
@@ -25,8 +29,8 @@ uv sync --dev --extra images
 ## Командная строка
 
 ```bash
-uv run csv-dataset-validator dataset.csv --profile cveta2 --output-dir validation
-uv run csv-dataset-validator dataset.csv --profile clearml-yolo \
+uv run ed-killer dataset.csv --profile cveta2 --output-dir validation
+uv run ed-killer dataset.csv --profile clearml-yolo \
   --check-images --output-dir validation
 ```
 
@@ -54,7 +58,7 @@ CSV с корректным заголовком без записей допу�
 ## Python API
 
 ```python
-from csv_dataset_validator import ValidationOptions, validate_csv
+from ed_killer import ValidationOptions, validate_csv
 
 result = validate_csv(
     "dataset.csv",
@@ -72,7 +76,7 @@ for position in result.broken_row_positions:
 Для уже загруженных данных:
 
 ```python
-from csv_dataset_validator import validate_dataframe
+from ed_killer import validate_dataframe
 
 result = validate_dataframe(frame, profile="clearml-yolo")
 ```

@@ -1,0 +1,520 @@
+{
+  "schema_version": 1,
+  "task": "Rename package, CLI and public Git repository to ed-killer",
+  "scope": [
+    "src/csv_dataset_validator",
+    "src/ed_killer",
+    "tests",
+    "pyproject.toml",
+    "uv.lock",
+    "README.md",
+    "AGENTS.md",
+    "docs/integration-plan.md",
+    "docs/releases.md",
+    "CHANGELOG.md",
+    "docs/plans/rename-ed-killer",
+    "docs/evidence/2026-10-13-ed-killer-rename.md"
+  ],
+  "impact": "modules",
+  "rules": "AGENTS.md governs a breaking namespace rename without changing validation behavior, dependency direction or effect ownership. Move every runtime module to ed_killer; distribute and invoke it as ed-killer. Preserve completed architecture records. Reuse runtime and release import contracts against the new namespace. The existing local release helper and its private persistent identifiers remain unchanged to preserve hook ownership, locking and recovery compatibility. Rename the existing public GitHub repository, retaining its identity, history and tags; publish only checked commits and Git tags.",
+  "modules": [
+    {
+      "id": "facade",
+      "path": "src/ed_killer/__init__.py",
+      "change": "move",
+      "responsibility": "Expose the public API without configuring logging or opening files.",
+      "interface": "schema_for, validate_dataframe, validate_csv, issue/options/result and input error types.",
+      "layer": "Public import surface",
+      "allowed_dependencies": [
+        "csv_io",
+        "models",
+        "schema",
+        "validation"
+      ],
+      "forbidden_dependencies": [
+        "cli",
+        "reporting"
+      ],
+      "effects": "Imports only; CSV/image effects occur solely through explicit calls.",
+      "contracts": [
+        "facade",
+        "consumer-isolation"
+      ],
+      "previous_path": "src/csv_dataset_validator/__init__.py"
+    },
+    {
+      "id": "entrypoint",
+      "path": "src/ed_killer/__main__.py",
+      "change": "move",
+      "responsibility": "Support python -m ed_killer.",
+      "interface": "Delegate to cli.main and exit with its status.",
+      "layer": "Process entrypoint",
+      "allowed_dependencies": [
+        "cli"
+      ],
+      "forbidden_dependencies": [
+        "consumer applications"
+      ],
+      "effects": "Runs the CLI only as the module entrypoint.",
+      "contracts": [
+        "layers",
+        "consumer-isolation"
+      ],
+      "previous_path": "src/csv_dataset_validator/__main__.py"
+    },
+    {
+      "id": "cells",
+      "path": "src/ed_killer/cells.py",
+      "change": "move",
+      "responsibility": "Share null and exact integer/numeric cell semantics.",
+      "interface": "is_missing, number and integer accept original scalar cells without mutation.",
+      "layer": "Value helpers",
+      "allowed_dependencies": [
+        "Python scalar operations",
+        "NumPy",
+        "pandas"
+      ],
+      "forbidden_dependencies": [
+        "all other project modules"
+      ],
+      "effects": "No external effects.",
+      "contracts": [
+        "layers",
+        "consumer-isolation"
+      ],
+      "previous_path": "src/csv_dataset_validator/cells.py"
+    },
+    {
+      "id": "models",
+      "path": "src/ed_killer/models.py",
+      "change": "move",
+      "responsibility": "Own configuration, findings and result/lineage contracts.",
+      "interface": "Frozen Pydantic options/issues and ValidationResult containing original DataFrame subsets.",
+      "layer": "Stable contracts",
+      "allowed_dependencies": [
+        "Pydantic",
+        "pandas",
+        "Python standard library"
+      ],
+      "forbidden_dependencies": [
+        "all other project modules"
+      ],
+      "effects": "No external effects; DataFrames are owned by the result caller.",
+      "contracts": [
+        "layers",
+        "consumer-isolation"
+      ],
+      "previous_path": "src/csv_dataset_validator/models.py"
+    },
+    {
+      "id": "schema",
+      "path": "src/ed_killer/schema.py",
+      "change": "move",
+      "responsibility": "Describe every known field and collect Pandera failures.",
+      "interface": "schema_for(profile), schema_issues(frame, profile); semantic noncoercing checks.",
+      "layer": "Field policy",
+      "allowed_dependencies": [
+        "models",
+        "cells",
+        "Pandera",
+        "pandas",
+        "NumPy",
+        "Python data operations"
+      ],
+      "forbidden_dependencies": [
+        "geometry",
+        "media",
+        "validation",
+        "CSV/report/CLI adapters"
+      ],
+      "effects": "No external effects; returns structured findings.",
+      "contracts": [
+        "layers",
+        "core-isolation",
+        "consumer-isolation"
+      ],
+      "previous_path": "src/csv_dataset_validator/schema.py"
+    },
+    {
+      "id": "geometry",
+      "path": "src/ed_killer/geometry.py",
+      "change": "move",
+      "responsibility": "Compare full rows and retained bounding-box representatives.",
+      "interface": "find_duplicates(frame, groups, threshold) returns positional issues; opaque/cyclic extras warn.",
+      "layer": "Geometry policy",
+      "allowed_dependencies": [
+        "models",
+        "pandas",
+        "NumPy",
+        "Python data operations"
+      ],
+      "forbidden_dependencies": [
+        "schema",
+        "media",
+        "validation",
+        "CSV/report/CLI adapters"
+      ],
+      "effects": "No external effects; original cells preserved.",
+      "contracts": [
+        "layers",
+        "core-isolation",
+        "consumer-isolation"
+      ],
+      "previous_path": "src/csv_dataset_validator/geometry.py"
+    },
+    {
+      "id": "media",
+      "path": "src/ed_killer/media.py",
+      "change": "move",
+      "responsibility": "Resolve local paths and optionally inspect local image files.",
+      "interface": "resolve_image_path and inspect_images accept explicit options; absent Pillow raises an actionable input error only on request.",
+      "layer": "Optional media adapter",
+      "allowed_dependencies": [
+        "models",
+        "pandas",
+        "Pillow",
+        "Python path operations"
+      ],
+      "forbidden_dependencies": [
+        "schema",
+        "geometry",
+        "validation",
+        "CSV/report/CLI adapters"
+      ],
+      "effects": "Owns local image opening, decoding, EXIF dimensions and caching. Lazy Pillow import. No network.",
+      "contracts": [
+        "layers",
+        "core-isolation",
+        "consumer-isolation"
+      ],
+      "previous_path": "src/csv_dataset_validator/media.py"
+    },
+    {
+      "id": "validation",
+      "path": "src/ed_killer/validation.py",
+      "change": "move",
+      "responsibility": "Compose field, image identity, bounds, quarantine and duplicate rules.",
+      "interface": "validate_dataframe(frame, *, profile, options) returns clean/broken subsets, all reasons and skipped checks.",
+      "layer": "Validation application",
+      "allowed_dependencies": [
+        "cells",
+        "models",
+        "schema",
+        "geometry",
+        "media",
+        "pandas",
+        "Python data/path/warning operations"
+      ],
+      "forbidden_dependencies": [
+        "csv_io",
+        "reporting",
+        "cli"
+      ],
+      "effects": "Emits optional Python warnings and performs lexical path normalization. With check_images=True, directly resolves local filesystem paths/symlinks for identity; image reads and decoding cross explicit media functions. This direct optional adapter edge is deliberate for the standalone local-only API.",
+      "contracts": [
+        "layers",
+        "core-isolation",
+        "consumer-isolation"
+      ],
+      "previous_path": "src/csv_dataset_validator/validation.py"
+    },
+    {
+      "id": "csv-io",
+      "path": "src/ed_killer/csv_io.py",
+      "change": "move",
+      "responsibility": "Load unambiguous CSV with lexical cells and the source directory.",
+      "interface": "validate_csv(path, *, profile, options) returns ValidationResult or DatasetInputError for unreadable/ambiguous input.",
+      "layer": "Input adapter",
+      "allowed_dependencies": [
+        "models",
+        "validation",
+        "pandas",
+        "Python CSV/path operations"
+      ],
+      "forbidden_dependencies": [
+        "reporting",
+        "cli"
+      ],
+      "effects": "Owns UTF-8 CSV reads; no inference, repair or remote access.",
+      "contracts": [
+        "layers",
+        "consumer-isolation"
+      ],
+      "previous_path": "src/csv_dataset_validator/csv_io.py"
+    },
+    {
+      "id": "reporting",
+      "path": "src/ed_killer/reporting.py",
+      "change": "move",
+      "responsibility": "Serialize results with collision-safe lineage fields.",
+      "interface": "report_dict(result), write_report(result, output_dir, overwrite=False) preserve existing files by default.",
+      "layer": "Output adapter",
+      "allowed_dependencies": [
+        "models",
+        "Python JSON/path/tempfile operations"
+      ],
+      "forbidden_dependencies": [
+        "csv_io",
+        "validation",
+        "cli"
+      ],
+      "effects": "Owns staged CSV/JSON writes and final local file installation.",
+      "contracts": [
+        "layers",
+        "report-isolation",
+        "consumer-isolation"
+      ],
+      "previous_path": "src/csv_dataset_validator/reporting.py"
+    },
+    {
+      "id": "cli",
+      "path": "src/ed_killer/cli.py",
+      "change": "move",
+      "responsibility": "Compose argument parsing, validation and report output.",
+      "interface": "main(argv=None) returns 0 cleanup, 1 strict rejection, 2 input/structural/output error.",
+      "layer": "CLI composition",
+      "allowed_dependencies": [
+        "models",
+        "csv_io",
+        "reporting",
+        "Loguru",
+        "Pydantic",
+        "Python argparse/process operations"
+      ],
+      "forbidden_dependencies": [
+        "consumer applications"
+      ],
+      "effects": "Owns command-line input, stderr logging configuration and explicit report calls.",
+      "contracts": [
+        "layers",
+        "consumer-isolation"
+      ],
+      "previous_path": "src/csv_dataset_validator/cli.py"
+    },
+    {
+      "id": "architecture-tests",
+      "path": "tests/test_architecture.py",
+      "change": "modify",
+      "responsibility": "Exercise the actual import-linter contracts against isolated prohibited imports and check the package facade.",
+      "interface": "pytest tests return success only if valid imports pass and injected invalid dependencies fail.",
+      "layer": "Development verification",
+      "allowed_dependencies": [
+        "pytest",
+        "Python AST/path/subprocess/tempfile operations",
+        "installed import-linter"
+      ],
+      "forbidden_dependencies": [
+        "production imports of test helpers"
+      ],
+      "effects": "Writes only pytest temporary source trees and runs import-linter subprocesses; never mutates the real package.",
+      "contracts": [
+        "negative-contracts"
+      ]
+    },
+    {
+      "id": "typing-marker",
+      "path": "src/ed_killer/py.typed",
+      "previous_path": "src/csv_dataset_validator/py.typed",
+      "change": "move",
+      "responsibility": "Mark installed runtime types as available to consumers.",
+      "interface": "PEP 561 marker in the ed_killer distribution.",
+      "layer": "Packaging metadata",
+      "allowed_dependencies": [],
+      "forbidden_dependencies": [],
+      "effects": "No runtime effects.",
+      "contracts": [
+        "facade"
+      ]
+    },
+    {
+      "id": "packaging",
+      "path": "pyproject.toml",
+      "change": "modify",
+      "responsibility": "Declare the renamed distribution, console entrypoint, wheel source and tool roots.",
+      "interface": "ed-killer distribution and command; ed_killer import/module entrypoint; no compatibility aliases.",
+      "layer": "Composition and build configuration",
+      "allowed_dependencies": [
+        "existing runtime and development dependencies"
+      ],
+      "forbidden_dependencies": [
+        "consumer applications",
+        "release packages in runtime dependencies"
+      ],
+      "effects": "Installation exposes ed-killer; builds contain only ed_killer runtime; existing local release policy remains unchanged.",
+      "contracts": [
+        "layers",
+        "tooling-isolation"
+      ]
+    },
+    {
+      "id": "behavior-tests",
+      "path": "tests",
+      "change": "modify",
+      "responsibility": "Exercise unchanged validation behavior and installed CLI under the new namespace.",
+      "interface": "Existing behavioral suite and executable CLI with clean/broken reports and exit status checks.",
+      "layer": "Development verification",
+      "allowed_dependencies": [
+        "ed_killer",
+        "pytest",
+        "standard library",
+        "existing test dependencies"
+      ],
+      "forbidden_dependencies": [
+        "runtime imports of tests",
+        "network services"
+      ],
+      "effects": "Temporary files and local subprocesses only.",
+      "contracts": [
+        "tooling-isolation"
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "id": "core-isolation",
+      "path": "pyproject.toml",
+      "status": "existing",
+      "rules": "Validation/schema/geometry/media cannot import CLI, report output or CSV input, directly or transitively.",
+      "check": "imports"
+    },
+    {
+      "id": "layers",
+      "path": "pyproject.toml",
+      "status": "existing",
+      "rules": "Exhaustive module layers descend from __main__, cli, csv_io|reporting, validation, schema|geometry|media, cells|models. Same-level modules are independent; no upward dependencies.",
+      "check": "imports"
+    },
+    {
+      "id": "facade",
+      "path": "tests/test_architecture.py",
+      "status": "existing",
+      "rules": "The package facade imports only the four approved public API modules and has only docstring/import/export declarations; no import-time file/logging/process effects.",
+      "check": "import-tests"
+    },
+    {
+      "id": "negative-contracts",
+      "path": "tests/test_architecture.py",
+      "status": "existing",
+      "rules": "Mutated temporary package imports into outer I/O, across independent adapters and into models are rejected by the real linter; the real package remains unchanged.",
+      "check": "import-tests"
+    },
+    {
+      "id": "report-isolation",
+      "path": "pyproject.toml",
+      "status": "existing",
+      "rules": "The report-output adapter cannot import validation, directly or transitively; results arrive through the public result model.",
+      "check": "imports"
+    },
+    {
+      "id": "consumer-isolation",
+      "path": "tests/test_architecture.py",
+      "status": "existing",
+      "rules": "Every package source module prohibits imports of cveta2 and clearml_yolo, including aliases, submodules, type-only and lazy Import/ImportFrom statements. Current source has no dynamic import mechanism.",
+      "check": "import-tests"
+    },
+    {
+      "id": "tooling-isolation",
+      "path": "tests/test_release_architecture.py",
+      "status": "existing",
+      "rules": "Release helper cannot import ed_killer or consumers; renamed runtime cannot import release tools; dev-only release dependencies and tag-only policy remain enforced, including negative controls.",
+      "check": "release-imports"
+    }
+  ],
+  "checks": [
+    {
+      "id": "imports",
+      "kind": "imports",
+      "command": "uv run lint-imports",
+      "expectation": "All original and expanded import contracts pass for the actual source tree.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-13-ed-killer-rename.md"
+      }
+    },
+    {
+      "id": "import-tests",
+      "kind": "imports",
+      "command": "uv run --locked --no-sync pytest",
+      "expectation": "Real imports and facade pass, and prohibited injected dependency/import-time-effect cases fail their contracts.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-13-ed-killer-rename.md"
+      }
+    },
+    {
+      "id": "suite-312",
+      "kind": "behavior",
+      "command": "uv run --python 3.12 pytest",
+      "expectation": "Full behavior and architecture suite passes on the development interpreter.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-13-ed-killer-rename.md"
+      }
+    },
+    {
+      "id": "suite-310",
+      "kind": "behavior",
+      "command": "UV_PROJECT_ENVIRONMENT=.superpowers/rename-py310 uv run --python 3.10 --frozen pytest",
+      "expectation": "Full suite passes on the minimum supported interpreter; alternate isolated environment path may be selected for verification.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-13-ed-killer-rename.md"
+      }
+    },
+    {
+      "id": "quality",
+      "kind": "behavior",
+      "command": "uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run vulture && uv lock --check && uv build",
+      "expectation": "Lint, format, strict typing, dead-code, lock and build checks pass.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-13-ed-killer-rename.md"
+      }
+    },
+    {
+      "id": "documentation",
+      "kind": "documentation",
+      "command": "uv run --locked --no-sync pytest",
+      "expectation": "Local Markdown links in root and docs resolve within the repository.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-13-ed-killer-rename.md"
+      }
+    },
+    {
+      "id": "release-imports",
+      "kind": "imports",
+      "command": "uv run --locked --no-sync pytest",
+      "expectation": "Release/runtime separation and publication-policy positive and negative controls pass under the new namespace.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-13-ed-killer-rename.md"
+      }
+    },
+    {
+      "id": "installed-wheel",
+      "kind": "behavior",
+      "command": "Build with uv build, install the exact ed_killer wheel in an isolated environment, then exercise imports, metadata, both CLI entrypoints and clean/broken reports outside the source tree.",
+      "expectation": "Only ed-killer distribution, ed_killer import/typed package and ed-killer command are exposed; old namespace absent; duplicate diagnostics and exit codes match source execution.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-13-ed-killer-rename.md"
+      }
+    }
+  ],
+  "documentation": "Update Russian README and English integration/release/agent guidance for the new public identity and migration. Keep historical plans, architecture and evidence unchanged. This adjacent record owns current runtime paths. Changelog links are regenerated using the renamed repository remote. Record checks and review in dated rename evidence.",
+  "review": {
+    "status": "accepted",
+    "reviewer": "Fresh read-only agent review_ed_killer_rename_retry (requested GPT-6 Sol/high; runtime settings not independently observable)",
+    "evidence": "docs/evidence/2026-10-13-ed-killer-rename.md",
+    "reconciliation": "Parent and reviewer inspected all 30 staged paths against clean base230e69c, including the 11 runtime module moves and typing marker, package/CLI metadata, root lock rename, updated test and import-contract roots, documentation and this task record. No unrelated changes, source logic changes or third-party dependency changes were found. Original accepted records and release-helper persistent identifiers are intentionally unchanged. Changelog URL regeneration and release version-only changes are required generated follow-up within recorded scope. Final evidence/record updates capture this accepted review without changing implementation."
+  }
+}

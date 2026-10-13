@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from csv_dataset_validator.geometry import find_duplicates
+from ed_killer.geometry import find_duplicates
 
 
 def boxes(*rows: tuple[object, ...], positions: list[int] | None = None) -> pd.DataFrame:
