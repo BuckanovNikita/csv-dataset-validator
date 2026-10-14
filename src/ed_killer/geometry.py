@@ -1,4 +1,4 @@
-"""Bounded duplicate detection for already-valid annotations."""
+"""Bounded duplicate and class-conflict detection for valid annotations."""
 
 from collections.abc import Hashable
 from datetime import date, time, timedelta
@@ -67,15 +67,7 @@ def _canonical(value: object) -> Hashable:
     raise TypeError(f"No structural equality contract for {type(value).__name__}")
 
 
-def _overlap(
-    box: NDArray[np.float64],
-    retained: NDArray[np.float64],
-    positions: list[int],
-    threshold: float,
-) -> tuple[int, float] | None:
-    if not positions:
-        return None
-    others = retained[: len(positions)]
+def _ious(box: NDArray[np.float64], others: NDArray[np.float64]) -> NDArray[np.float64]:
     # Scale each pair's axes before multiplying lengths. IoU is invariant
     # under this scaling, even when valid finite pixel areas overflow floats.
     scales = np.maximum(box[2:], others[:, 2:])
@@ -88,12 +80,82 @@ def _overlap(
     box_areas = box_lengths[:, 0] * box_lengths[:, 1]
     areas = other_lengths[:, 0] * other_lengths[:, 1]
     unions = box_areas + areas - intersection_areas
-    overlaps = np.divide(intersection_areas, unions, out=np.zeros_like(unions), where=unions > 0)
+    overlaps: NDArray[np.float64] = np.divide(
+        intersection_areas, unions, out=np.zeros_like(unions), where=unions > 0
+    )
+    return overlaps
+
+
+def _overlap(
+    box: NDArray[np.float64],
+    retained: NDArray[np.float64],
+    positions: list[int],
+    threshold: float,
+) -> tuple[int, float] | None:
+    if not positions:
+        return None
+    overlaps = _ious(box, retained[: len(positions)])
     matches = np.flatnonzero(overlaps >= threshold)
     if not len(matches):
         return None
     match = int(matches[0])
     return positions[match], float(overlaps[match])
+
+
+def find_class_conflicts(
+    frame: pd.DataFrame, groups: list[tuple[int, ...]], *, iou_threshold: float
+) -> list[Issue]:
+    """Report both endpoints of every overlapping cross-class pair per image.
+
+    ``frame`` uses original row positions as its index and already-valid labels
+    and geometry. Every boxed row participates, including later duplicates;
+    empty negative rows do not. Working arrays are linear in one image group,
+    although reporting every conflicting pair can itself require quadratic space.
+    """
+    issues: list[Issue] = []
+    labels = frame["instance_label"].to_numpy(copy=False)
+    columns = [frame[column].to_numpy(copy=False) for column in BOX_COLUMNS]
+    for group in groups:
+        if len(group) < 2:
+            continue
+        positions = sorted(group)
+        offsets = frame.index.get_indexer(pd.Index(positions))
+        group_boxes = np.empty((len(group), 4), dtype=np.float64)
+        boxed_positions: list[int] = []
+        boxed_labels: list[object] = []
+        for position, raw_offset in zip(positions, offsets, strict=True):
+            offset = int(raw_offset)
+            raw_box = [column[offset] for column in columns]
+            if any(_canonical(value) is _NULL or value == "" for value in raw_box):
+                continue
+            group_boxes[len(boxed_positions)] = np.asarray(raw_box, dtype=np.float64)
+            boxed_positions.append(position)
+            boxed_labels.append(labels[offset])
+        for first, position in enumerate(boxed_positions):
+            overlaps = _ious(group_boxes[first], group_boxes[first + 1 : len(boxed_positions)])
+            for raw_match in np.flatnonzero(overlaps >= iou_threshold):
+                match = int(raw_match)
+                second = first + 1 + match
+                if boxed_labels[first] == boxed_labels[second]:
+                    continue
+                other_position = boxed_positions[second]
+                iou = float(overlaps[match])
+                message = (
+                    f"Overlapping boxes have conflicting classes {boxed_labels[first]!r} "
+                    f"and {boxed_labels[second]!r}."
+                )
+                for endpoint, related in ((position, other_position), (other_position, position)):
+                    issues.append(
+                        Issue(
+                            code="class_conflict",
+                            message=message,
+                            row_position=endpoint,
+                            columns=("instance_label", *BOX_COLUMNS),
+                            related_rows=(related,),
+                            iou=iou,
+                        )
+                    )
+    return issues
 
 
 def find_duplicates(

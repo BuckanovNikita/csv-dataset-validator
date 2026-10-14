@@ -48,6 +48,7 @@ REQUIRED_COLUMNS: dict[Profile, tuple[str, ...]] = {
     "clearml-yolo": ("image_name", "image_path", "instance_label", *BOX_COLUMNS, "split"),
 }
 KNOWN_COLUMNS = frozenset((*CVETA_COLUMNS, "width", "height", "source_row_id"))
+CLEARML_COLUMNS = (*REQUIRED_COLUMNS["clearml-yolo"], "image_width", "image_height", "width", "height")
 
 _ROW_COLUMNS: dict[str, tuple[str, ...]] = {
     "invalid_label": ("instance_label",),
@@ -152,6 +153,20 @@ def _check(predicate: Callable[[object], bool], code: str, *, optional: bool = T
     return pa.Check(check, element_wise=True, ignore_na=False, name=code)
 
 
+def valid_box_geometry(coordinates: tuple[float, float, float, float], profile: Profile) -> bool:
+    """Check derived geometry, sharing the profile's minimum with bounded repairs."""
+    x1, y1, x2, y2 = coordinates
+    width, height = x2 - x1, y2 - y1
+    minimum = 2 if profile == "clearml-yolo" else 0
+    area = width * height
+    return (
+        width > minimum
+        and height > minimum
+        and (profile == "cveta2" or area > minimum)
+        and all(map(isfinite, (width, height, area)))
+    )
+
+
 def _row_masks(frame: pd.DataFrame, profile: Profile, code: str) -> "pd.Series[bool]":
     """Produce one boolean per position; missing headers leave dependent checks to the schema."""
     valid: pd.Series[bool] = pd.Series(True, index=frame.index, dtype=bool)
@@ -159,7 +174,11 @@ def _row_masks(frame: pd.DataFrame, profile: Profile, code: str) -> "pd.Series[b
         for column in ("image_width", "image_height", "width", "height"):
             if column not in frame:
                 continue
-            shapes = frame["instance_shape"] if "instance_shape" in frame else [None] * len(frame)
+            shapes = (
+                frame["instance_shape"]
+                if profile == "cveta2" and "instance_shape" in frame
+                else [None] * len(frame)
+            )
             required = profile == "cveta2" and column in ("image_width", "image_height")
             values = []
             for value, shape in zip(frame[column], shapes, strict=True):
@@ -173,17 +192,21 @@ def _row_masks(frame: pd.DataFrame, profile: Profile, code: str) -> "pd.Series[b
         return valid
     if "instance_label" not in frame or not set(BOX_COLUMNS).issubset(frame.columns):
         return valid
-    shapes = frame["instance_shape"] if "instance_shape" in frame else [None] * len(frame)
+    shapes = (
+        frame["instance_shape"] if profile == "cveta2" and "instance_shape" in frame else [None] * len(frame)
+    )
     annotations = frame[["instance_label", *BOX_COLUMNS]].itertuples(index=False, name=None)
     values = []
     for shape, annotation in zip(shapes, annotations, strict=True):
         label, *coordinates = annotation
         blank = is_missing(label) and all(is_missing(cell) for cell in coordinates)
         negative = isinstance(shape, str) and shape in ("none", "deleted")
-        if profile == "clearml-yolo" and is_missing(shape):
+        if profile == "clearml-yolo":
             negative = blank
         if code == "invalid_negative":
-            values.append(not negative or blank)
+            values.append(
+                (not is_missing(label) or blank) if profile == "clearml-yolo" else (not negative or blank)
+            )
         elif code == "invalid_label":
             label_ok = _nonempty_text(label) or (profile == "clearml-yolo" and number(label) is not None)
             values.append(negative or label_ok)
@@ -194,10 +217,8 @@ def _row_masks(frame: pd.DataFrame, profile: Profile, code: str) -> "pd.Series[b
             if negative or any(value is None for value in numeric):
                 values.append(True)
             else:
-                x1, y1, x2, y2 = cast(list[float], numeric)
-                width, height = x2 - x1, y2 - y1
                 values.append(
-                    width > 0 and height > 0 and all(map(isfinite, (width, height, width * height)))
+                    valid_box_geometry(cast(tuple[float, float, float, float], tuple(numeric)), profile)
                 )
     result: pd.Series[bool] = pd.Series(values, index=frame.index, dtype=bool)
     return result
@@ -262,6 +283,8 @@ def schema_for(profile: Profile) -> pa.DataFrameSchema:
         pa.Check(partial(_row_masks, profile=profile, code=code), name=code, ignore_na=False)
         for code in _ROW_COLUMNS
     ]
+    if profile == "clearml-yolo":
+        columns = {name: columns[name] for name in CLEARML_COLUMNS}
     return pa.DataFrameSchema(columns, checks=checks, strict=False, coerce=False, unique_column_names=True)
 
 
@@ -291,10 +314,16 @@ def schema_issues(frame: pd.DataFrame, profile: Profile) -> list[Issue]:
             key = (code, position, fields)
             if key not in seen:
                 seen.add(key)
+                reason = _REASONS.get(code, code)
+                if code == "invalid_box_area" and profile == "clearml-yolo":
+                    reason = (
+                        "Box width and height must each exceed 2 px; "
+                        "area must exceed 2 square pixels; all must be finite"
+                    )
                 issues.append(
                     Issue(
                         code=code,
-                        message=f"{_REASONS.get(code, code)}: {', '.join(fields)}.",
+                        message=f"{reason}: {', '.join(fields)}.",
                         row_position=position,
                         columns=fields,
                     )

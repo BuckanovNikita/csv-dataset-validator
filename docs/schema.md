@@ -2,17 +2,21 @@
 
 The public `schema_for(profile)` returns a `pandera.pandas.DataFrameSchema` for
 `"cveta2"` or `"clearml-yolo"`. It recognizes the producer's complete 30-column
-cveta2 format and the clearml-yolo additions below. Metadata headers are optional;
-required headers remain required even for an empty dataset. Extra columns are
+cveta2 format. The clearml-yolo profile validates only its eight required fields and
+four optional dimension fields below; every other field is ignored metadata. Required
+headers remain required even for an empty dataset. Extra columns are
 retained (`strict=False`); validation never coerces cells (`coerce=False`). Duplicate
-column labels are invalid (`unique_column_names=True`). The validation API warns
-about unknown columns separately from schema validation.
+column labels are invalid (`unique_column_names=True`). The cveta2 validation API warns
+about unknown columns separately from schema
+validation; clearml-yolo emits no metadata warnings.
 
 Types in this table describe cell semantics, not pandas dtypes. Numeric cells may
 be native numbers or finite numeric strings; booleans are never numbers. Integral
 values such as `12`, `12.0`, and `"12.0"` are accepted for integer fields. Boolean
 metadata accepts native Python/NumPy booleans, case-insensitive `true`/`false`, and
-numeric or lexical `0`/`1`. All checks preserve the original value.
+numeric or lexical `0`/`1`. Direct schema checks preserve the original value;
+clearml-yolo validation API repairs
+are described below.
 
 An empty cell means `""`, `None`, `pd.NA`, or floating-point NaN. Whitespace and
 literal strings such as `"NA"` and `"null"` are retained as data. No trimming or
@@ -20,17 +24,16 @@ replacement occurs. Optional metadata may be empty even for box annotations.
 
 ## cveta2 fields
 
-“Required” identifies headers required by the cveta2 profile. The clearml-yolo
-profile requires `image_name`, `image_path`, `instance_label`, all four coordinate
-headers, and `split`; the other cveta2 fields are optional there.
+This table describes cveta2 only. “Required” identifies headers required by that
+profile. The separate clearml-yolo contract below replaces these rules for that profile.
 
 | Field | Cell type | Empty allowed | Required | Additional semantics |
 | --- | --- | --- | --- | --- |
 | `image_name` | String | No | Yes | Bare filename; no `/` or `\`, and not `.` or `..`; lexical names and leading zeros are preserved. |
-| `image_width` | Finite integer | No in cveta2; yes in clearml-yolo | Yes | Positive for active images; nonnegative for cveta2 deleted images. |
-| `image_height` | Finite integer | No in cveta2; yes in clearml-yolo | Yes | Same dimension rules as `image_width`. |
-| `instance_shape` | String enum | No in cveta2; yes in clearml-yolo | Yes | cveta2: `box`, `none`, `deleted`; clearml-yolo: `box`, `none`. |
-| `instance_label` | String; also finite numeric value in clearml-yolo | Only negative/deleted rows | Yes | Nonempty on boxes; no numeric class restriction for clearml-yolo. |
+| `image_width` | Finite integer | No | Yes | Positive for active images; nonnegative for cveta2 deleted images. |
+| `image_height` | Finite integer | No | Yes | Same dimension rules as `image_width`. |
+| `instance_shape` | String enum | No | Yes | `box`, `none`, `deleted`. |
+| `instance_label` | String | Only negative/deleted rows | Yes | Nonempty on boxes. |
 | `bbox_x_tl` | Finite number | Only negative/deleted rows | Yes | Absolute pixel left coordinate; nonnegative. |
 | `bbox_y_tl` | Finite number | Only negative/deleted rows | Yes | Absolute pixel top coordinate; nonnegative. |
 | `bbox_x_br` | Finite number | Only negative/deleted rows | Yes | Right coordinate; greater than `bbox_x_tl`. |
@@ -43,7 +46,7 @@ headers, and `split`; the other cveta2 fields are optional there.
 | `task_updated_date` | String | Yes | No | Producer-supplied informational text; no date parsing. |
 | `created_by_username` | String | Yes | No | Informational text. |
 | `frame_id` | Finite integer | Yes | No | Nonnegative. |
-| `split` | String enum | Yes in cveta2; no in clearml-yolo | No | `train`, `val`, `test`. |
+| `split` | String enum | Yes | No | `train`, `val`, `test`. |
 | `subset` | String | Yes | No | Free text; distinct from `split`. |
 | `occluded` | Boolean | Yes | No | Boolean metadata semantics described above. |
 | `z_order` | Finite integer | Yes | No | Integral; negative values are permitted. |
@@ -54,39 +57,65 @@ headers, and `split`; the other cveta2 fields are optional there.
 | `issue_text` | String | Yes | No | Informational text. |
 | `issue_state` | String enum | Yes | No | `open`, `resolved`, `open \| resolved`, `resolved \| open`, or upload value `new`. |
 | `s3_image_path` | String | Yes | No | Informational reference; no remote access. |
-| `image_path` | String | Yes in cveta2; no in clearml-yolo | No | Nonempty for clearml-yolo; relative and absolute local references are accepted. |
+| `image_path` | String | Yes | No | Relative and absolute local references are accepted. |
 | `attributes` | JSON object string | Yes | No | A JSON map from strings to strings, including `{}`; the cell is preserved as supplied. |
 
 The schema follows the field order in cveta2's `BBoxAnnotation` CSV export;
 internal `frame_path` is not a CSV field.
 
-## clearml-yolo additions
+## clearml-yolo training fields
 
 | Field | Cell type | Empty allowed | Required | Additional semantics |
 | --- | --- | --- | --- | --- |
-| `width` | Finite integer | Yes | No | Positive when provided; an alternative image width for local bounds checks. |
-| `height` | Finite integer | Yes | No | Positive when provided; an alternative image height for local bounds checks. |
-| `source_row_id` | Opaque identifier | Yes | No | Retained provenance; standalone ground-truth validation imposes no consumer-stage uniqueness or numeric format. |
+| `image_name` | String | No | Yes | Bare filename, as for cveta2. |
+| `image_path` | String | No | Yes | Relative or absolute local reference; URI content is never downloaded. |
+| `instance_label` | String or finite numeric value | Only explicit negative rows | Yes | No restriction to numeric classes. |
+| `bbox_x_tl`, `bbox_y_tl`, `bbox_x_br`, `bbox_y_br` | Finite number | Only explicit negative rows | Yes | Absolute XYXY coordinates; left/top must be nonnegative after any accepted repair. |
+| `split` | String enum | No | Yes | `train`, `val`, `test`. |
+| `image_width`, `image_height`, `width`, `height` | Finite integer | Yes | No | Positive when provided; alternative dimension names must agree for the image. |
+
+Every other column is retained but ignored, even when its name occurs in the cveta2
+schema. This includes `instance_shape`, `task_id`, `rotation`, `confidence`,
+`source_row_id`, `issue_state`, `issue_text`, and their arbitrary combinations. Metadata
+cannot reject rows, cause warnings, isolate tasks, or change duplicate decisions.
 
 ## Conditional annotation checks
 
 cveta2 `box` rows require a label and all four coordinates. `none` and `deleted`
 rows require the label and all four coordinates to be empty. Sparse producer
 metadata is valid, and any supplied metadata is checked using the same field
-rules as box rows. Valid `deleted` rows may use zero image dimensions. They are
-rejected by the clearml-yolo profile.
+rules as box rows. Valid `deleted` rows may use zero image dimensions. cveta2 boxes
+require finite nonnegative coordinates and positive finite width, height and area.
+The cveta2 profile never repairs coordinates.
 
-clearml-yolo supports explicit negatives with a completely empty label and all
-four coordinates empty. If `instance_shape` is absent or empty, this pattern
-identifies the negative; a supplied `none` shape requires that pattern. A supplied
-`box` shape requires a populated box. A partial annotation is invalid. Validation
-never synthesizes a negative row from removed or malformed annotations.
+clearml-yolo explicit negatives have a completely empty label and all four coordinates
+empty, regardless of ignored shape metadata. Partial annotations are invalid. Box
+width must be finite and strictly greater than 2 pixels; height must be finite and
+strictly greater than 2 pixels; area must be finite and strictly greater than 2 square
+pixels. Validation never synthesizes negatives from removed or malformed annotations.
 
-Boxes must have finite, nonnegative coordinates and positive, finite derived
-width, height, and area. Image upper
-bounds, repeated dimensions, split ownership, task quarantine, duplicates, and
-optional local image inspection are separate validation checks. Schema checks
-do not clip boxes or contact remote services.
+Direct `schema_for` validation is nonmutating and rejects negative coordinates.
+`validate_dataframe` and `validate_csv` can first repair clearml-yolo boxes with known,
+trustworthy image dimensions. Each crossed edge must overflow by strictly less than
+10 pixels, including negative left/top edges; every edge must meet this limit. The
+original box must have finite, correctly ordered coordinates and meet the minimum
+geometry. The clipped box must also meet all minimums. Unknown or conflicting dimensions,
+nonfinite coordinates, reversed edges and undersized boxes are never repaired. With
+`check_images=True`, inspected local image sizes can supply bounds; disagreements with
+CSV dimensions prevent repair. No API contacts remote services.
+
+For clearml-yolo, malformed annotations quarantine their entire image, without task
+isolation. Cross-class pairs with IoU at or above the configured threshold (default
+0.99) receive `class_conflict` at both endpoints and quarantine the image. This check
+runs before pruning duplicates. Within each image and class, exact or near duplicates
+at or above the threshold keep the earliest input row; later rows are compared only
+against retained representatives. Metadata is irrelevant, and accepted repairs are
+included in geometry comparisons. cveta2 retains its image/task quarantine and full-row
+or class-agnostic IoU duplicate rules.
+
+Image identity, upper bounds, repeated dimensions, split ownership and optional
+local image inspection remain inter-row or adapter checks, separate from the direct
+field schema. Public API and CLI signatures are unchanged.
 
 ## Diagnostics and preservation
 
@@ -105,11 +134,15 @@ Stable schema reason codes include `invalid_image_name`, `invalid_image_path`,
 `invalid_job_stage`, `invalid_job_state`, and `invalid_issue_state`.
 
 Schema validation does not emit warnings, modify input cells, reorder rows,
-discard extras, or replace the caller's index. Clean and broken outputs remain
-subsets of the original rows; numeric parsing and JSON decoding are used only
-to decide whether a cell satisfies its contract.
+discard extras, or replace the caller's index. The validation APIs preserve input and
+broken cells exactly. Clean rows preserve untouched cells and contain only accepted
+clearml-yolo coordinate repairs. `bbox_clipped` warnings identify changed fields and
+old/new coordinates only for retained repaired rows. Repair-only results have
+`is_valid=True`; rejected duplicates make `is_valid=False` and retain strict CLI exit 1.
+Other numeric parsing and cveta2 JSON decoding do not replace source values.
 
-Exact-row comparison supports scalar values and nested lists, tuples, dictionaries,
+For cveta2, exact-row comparison supports scalar values and nested lists, tuples,
+dictionaries,
 sets, NumPy arrays, binary buffers, and pandas Series/DataFrame/Index cells. Container
 type, labels, names and contents are compared structurally; numeric storage dtypes
 do not determine equality. For opaque objects or cyclic structures, a row-level

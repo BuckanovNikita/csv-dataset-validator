@@ -276,8 +276,8 @@ def test_duplicate_headers_are_reported_as_actual_column_names() -> None:
     assert duplicates[0].row_position is None
 
 
-def test_clearml_deleted_records_and_empty_split_are_rejected() -> None:
+def test_clearml_ignores_shape_but_rejects_empty_split() -> None:
     issues = schema_issues(
         pd.DataFrame([box(instance_shape="deleted", image_path="x", split="")]), "clearml-yolo"
     )
-    assert {i.code for i in issues} >= {"invalid_shape", "invalid_split"}
+    assert {i.code for i in issues} == {"invalid_split"}

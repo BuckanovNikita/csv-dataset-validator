@@ -126,3 +126,36 @@ def test_cli_all_rejected_is_completed_cleanup_and_empty_is_valid(tmp_path):
     assert run_cli(source, "--profile", "clearml-yolo").returncode == 0
     write_csv(source, [])
     assert run_cli(source, "--profile", "clearml-yolo", "--fail-on-invalid").returncode == 0
+
+
+@pytest.mark.parametrize("entrypoint", ["module", "console"])
+def test_cli_reports_repairs_and_retains_original_duplicate_rows(tmp_path, entrypoint):
+    source = tmp_path / "input.csv"
+    header = [*HEADER, "width", "height", "issue_state", "issue_text"]
+    rows = [
+        ["a.jpg", "a.jpg", "001", "-1", "0", "020", "20", "train", 100, 100, "closed", ""],
+        ["a.jpg", "a.jpg", "001", "0", "0", "20", "20", "train", 100, 100, "nonsense", "keep"],
+    ]
+    write_csv(source, rows[:1], header=header)
+    repaired = run_cli(source, "--profile", "clearml-yolo", "--fail-on-invalid", entrypoint=entrypoint)
+    assert repaired.returncode == 0, repaired.stderr
+    write_csv(source, rows, header=header)
+    before = source.read_bytes()
+    output = tmp_path / "output"
+    result = run_cli(source, "--profile", "clearml-yolo", "--output-dir", output, entrypoint=entrypoint)
+    assert result.returncode == 0, result.stderr
+    with (output / "clean.csv").open() as stream:
+        clean = list(csv.DictReader(stream))
+    with (output / "broken.csv").open() as stream:
+        broken = list(csv.DictReader(stream))
+    report = json.loads((output / "report.json").read_text())
+    assert len(clean) == len(broken) == 1
+    assert (clean[0]["bbox_x_tl"], clean[0]["bbox_x_br"], clean[0]["instance_label"]) == ("0", "020", "001")
+    assert clean[0]["issue_state"] == "closed"
+    assert broken[0]["issue_text"] == "keep"
+    assert report["clean_row_positions"] == [0]
+    assert report["broken_row_positions"] == [1]
+    assert {issue["code"] for issue in report["issues"]} == {"bbox_clipped", "high_iou"}
+    assert source.read_bytes() == before
+    strict = run_cli(source, "--profile", "clearml-yolo", "--fail-on-invalid", entrypoint=entrypoint)
+    assert strict.returncode == 1

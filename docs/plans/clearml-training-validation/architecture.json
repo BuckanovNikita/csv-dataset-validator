@@ -1,0 +1,296 @@
+{
+  "schema_version": 1,
+  "task": "clearml-yolo training validation and bounded geometry cleanup",
+  "scope": [
+    "src/ed_killer/models.py",
+    "src/ed_killer/schema.py",
+    "src/ed_killer/geometry.py",
+    "src/ed_killer/validation.py",
+    "src/ed_killer/reporting.py",
+    "tests",
+    "AGENTS.md",
+    "README.md",
+    "docs/schema.md",
+    "docs/integration-plan.md",
+    "docs/plans/clearml-training-validation",
+    "docs/evidence/2026-10-14-clearml-training-validation.md",
+    "pyproject.toml",
+    "uv.lock",
+    "CHANGELOG.md"
+  ],
+  "impact": "modules",
+  "rules": "Reuse independent downward layers, output-only reporting and consumer isolation from the accepted rename architecture. Explicit user request authorizes bounded clipping only for clearml-yolo. No new modules, runtime dependencies or external effects; optional local image reads remain in media. Generated version metadata belongs exclusively to release hooks.",
+  "modules": [
+    {
+      "id": "models",
+      "path": "src/ed_killer/models.py",
+      "change": "modify",
+      "responsibility": "Own configuration, findings and result/lineage contracts.",
+      "interface": "Clarify corrected clean rows and original broken rows without changing public fields; is_valid continues to mean no structural errors or rejected rows.",
+      "layer": "Stable contracts",
+      "allowed_dependencies": [
+        "Pydantic",
+        "pandas",
+        "Python standard library"
+      ],
+      "forbidden_dependencies": [
+        "all other project modules"
+      ],
+      "effects": "No external effects; DataFrames are owned by the result caller.",
+      "contracts": [
+        "layers",
+        "consumer-isolation"
+      ]
+    },
+    {
+      "id": "schema",
+      "path": "src/ed_killer/schema.py",
+      "change": "modify",
+      "responsibility": "Describe profile-specific field and minimum geometry policy and collect Pandera failures.",
+      "interface": "Keep schema_for and schema_issues signatures. Clearml-yolo checks eight required fields plus four optional dimensions and ignores metadata. Require finite bbox width > 2 px, height > 2 px and area > 2 square pixels. Direct schema checks do not repair. cveta2 unchanged.",
+      "layer": "Field policy",
+      "allowed_dependencies": [
+        "models",
+        "cells",
+        "Pandera",
+        "pandas",
+        "NumPy",
+        "Python data operations"
+      ],
+      "forbidden_dependencies": [
+        "geometry",
+        "media",
+        "validation",
+        "CSV/report/CLI adapters"
+      ],
+      "effects": "No external effects; returns structured findings.",
+      "contracts": [
+        "layers",
+        "core-isolation",
+        "consumer-isolation"
+      ]
+    },
+    {
+      "id": "geometry",
+      "path": "src/ed_killer/geometry.py",
+      "change": "modify",
+      "responsibility": "Compare rows and retained boxes, and discover all cross-class conflicts before pruning.",
+      "interface": "Preserve find_duplicates behavior for existing callers. Add find_class_conflicts(frame, groups, *, iou_threshold) returning error Issues for both endpoints of every cross-class pair at or above the threshold. Validation supplies image/class subgroups for clearml-yolo keep-first cleanup.",
+      "layer": "Geometry policy",
+      "allowed_dependencies": [
+        "models",
+        "pandas",
+        "NumPy",
+        "Python data operations"
+      ],
+      "forbidden_dependencies": [
+        "schema",
+        "media",
+        "validation",
+        "CSV/report/CLI adapters"
+      ],
+      "effects": "No external effects; original cells preserved.",
+      "contracts": [
+        "layers",
+        "core-isolation",
+        "consumer-isolation"
+      ]
+    },
+    {
+      "id": "validation",
+      "path": "src/ed_killer/validation.py",
+      "change": "modify",
+      "responsibility": "Compose profile views, identity, bounds, bounded repairs, class conflicts, quarantine and keep-first cleanup.",
+      "interface": "Keep public signatures and result fields. Use positional relevant-field views, image-wide quarantine, validated dimensions and per-edge clipping strictly below 10 px. Clean rows contain only accepted coordinate repairs; input and broken rows remain original. Detect cross-class conflicts before within-class keep-first cleanup. Emit bbox_clipped warnings with before/after coordinates only for retained repairs. Every supplied dimension axis is checked against aliases, other image rows and measured size, including incomplete pairs; cveta2 keeps its prior pair-based checks.",
+      "layer": "Validation application",
+      "allowed_dependencies": [
+        "cells",
+        "models",
+        "schema",
+        "geometry",
+        "media",
+        "pandas",
+        "Python data/path/warning operations"
+      ],
+      "forbidden_dependencies": [
+        "csv_io",
+        "reporting",
+        "cli"
+      ],
+      "effects": "Emits optional Python warnings and performs lexical path normalization. With check_images=True, directly resolves local filesystem paths/symlinks for identity; image reads and decoding cross explicit media functions. This direct optional adapter edge is deliberate for the standalone local-only API.",
+      "contracts": [
+        "layers",
+        "core-isolation",
+        "consumer-isolation"
+      ]
+    },
+    {
+      "id": "reporting",
+      "path": "src/ed_killer/reporting.py",
+      "change": "modify",
+      "responsibility": "Serialize results with collision-safe lineage fields.",
+      "interface": "Keep report format and output-only imports. Clarify clean.csv may contain coordinate repairs; report.json carries repair warnings and class conflicts.",
+      "layer": "Output adapter",
+      "allowed_dependencies": [
+        "models",
+        "Python JSON/path/tempfile operations"
+      ],
+      "forbidden_dependencies": [
+        "csv_io",
+        "validation",
+        "cli"
+      ],
+      "effects": "Owns staged CSV/JSON writes and final local file installation.",
+      "contracts": [
+        "layers",
+        "report-isolation",
+        "consumer-isolation"
+      ]
+    },
+    {
+      "id": "behavior-tests",
+      "path": "tests",
+      "change": "modify",
+      "responsibility": "Verify training-focused cleanup and cveta2 compatibility through real schemas, DataFrames, image files and CLI reports.",
+      "interface": "Exercise metadata independence, strict geometry, per-edge clipping, source preservation, keep-first cleanup, cross-class conflicts, CLI outputs and cveta2 compatibility.",
+      "layer": "Development verification",
+      "allowed_dependencies": [
+        "ed_killer",
+        "pytest",
+        "standard library",
+        "existing test dependencies"
+      ],
+      "forbidden_dependencies": [
+        "runtime imports of tests",
+        "network services"
+      ],
+      "effects": "Temporary files and local subprocesses only.",
+      "contracts": [
+        "tooling-isolation"
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "id": "core-isolation",
+      "path": "pyproject.toml",
+      "status": "existing",
+      "rules": "Validation/schema/geometry/media cannot import CLI, report output or CSV input, directly or transitively.",
+      "check": "imports"
+    },
+    {
+      "id": "layers",
+      "path": "pyproject.toml",
+      "status": "existing",
+      "rules": "Exhaustive module layers descend from __main__, cli, csv_io|reporting, validation, schema|geometry|media, cells|models. Same-level modules are independent; no upward dependencies.",
+      "check": "imports"
+    },
+    {
+      "id": "report-isolation",
+      "path": "pyproject.toml",
+      "status": "existing",
+      "rules": "The report-output adapter cannot import validation, directly or transitively; results arrive through the public result model.",
+      "check": "imports"
+    },
+    {
+      "id": "consumer-isolation",
+      "path": "tests/test_architecture.py",
+      "status": "existing",
+      "rules": "Every package source module prohibits imports of cveta2 and clearml_yolo, including aliases, submodules, type-only and lazy Import/ImportFrom statements. Current source has no dynamic import mechanism.",
+      "check": "import-tests"
+    },
+    {
+      "id": "tooling-isolation",
+      "path": "tests/test_release_architecture.py",
+      "status": "existing",
+      "rules": "Release helper cannot import ed_killer or consumers; renamed runtime cannot import release tools; dev-only release dependencies and tag-only policy remain enforced, including negative controls.",
+      "check": "release-imports"
+    }
+  ],
+  "checks": [
+    {
+      "id": "imports",
+      "kind": "imports",
+      "command": "uv run lint-imports",
+      "expectation": "All independent layers, core isolation and report-output contracts pass.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-14-clearml-training-validation.md"
+      }
+    },
+    {
+      "id": "import-tests",
+      "kind": "imports",
+      "command": "uv run pytest tests/test_architecture.py",
+      "expectation": "Valid imports pass; injected prohibited dependencies, consumer imports and facade effects fail.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-14-clearml-training-validation.md"
+      }
+    },
+    {
+      "id": "release-imports",
+      "kind": "imports",
+      "command": "uv run pytest tests/test_release_architecture.py",
+      "expectation": "Release tooling stays isolated from runtime and consumer applications.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-14-clearml-training-validation.md"
+      }
+    },
+    {
+      "id": "behavior",
+      "kind": "behavior",
+      "command": "uv run pytest",
+      "expectation": "All geometry, metadata, repair, conflict, deduplication, lineage, CLI, idempotence and cveta2 regression tests pass.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-14-clearml-training-validation.md"
+      }
+    },
+    {
+      "id": "quality",
+      "kind": "behavior",
+      "command": "uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run vulture && uv lock --check && uv build",
+      "expectation": "All required static, lockfile and build checks pass.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-14-clearml-training-validation.md"
+      }
+    },
+    {
+      "id": "documentation",
+      "kind": "documentation",
+      "command": "uv run pytest tests/test_architecture.py::test_local_documentation_links_resolve",
+      "expectation": "Updated task, schema, integration, README and instruction links resolve.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-14-clearml-training-validation.md"
+      }
+    },
+    {
+      "id": "python310",
+      "kind": "behavior",
+      "command": "UV_PROJECT_ENVIRONMENT=\"$temporary_environment\" uv run --python 3.10 --frozen pytest",
+      "expectation": "The full suite passes on the minimum supported interpreter in a task-owned isolated environment.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-14-clearml-training-validation.md"
+      }
+    }
+  ],
+  "documentation": "Update Russian README and English schema/integration docs and project instructions for ignored metadata, dimension checks, strict bbox minimums, per-edge clipping, class-aware cleanup and preservation exceptions. Preserve accepted historical records; record verification and review in dated evidence.",
+  "review": {
+    "status": "accepted",
+    "reviewer": "Fresh native agent /root/review_clearml_final; requested GPT-6.1 Sol/high, runtime settings not independently exposed",
+    "evidence": "docs/evidence/2026-10-14-clearml-training-validation.md",
+    "reconciliation": "Parent and fresh reviewer inspected the complete task diff from clean 853043e, including all 13 modified tracked paths and four additions. Runtime scope is schema, validation and geometry, with documentation-only result/report docstrings. Tests cover new policy and preserve old cveta2 cases; docs/instructions and adjacent task records reflect the new behavior. No unrelated edits or dependency changes are included. Existing import contracts and negative controls remain intact. After fixing the first review finding on partial dimension consistency, full tests and all required checks passed again and fresh review returned ship. Subsequent evidence/task-status updates and hook-generated version-only pyproject/lock/changelog changes are within recorded scope."
+  }
+}

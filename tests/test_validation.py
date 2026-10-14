@@ -22,11 +22,13 @@ def row(name="a.jpg", **overrides):
     }
 
 
-def validate(rows, **kwargs):
+def validate(rows, *, profile="clearml-yolo", **kwargs):
     from ed_killer import ValidationOptions, validate_dataframe
 
+    if profile == "cveta2":
+        rows = [{"instance_shape": "box", **record} for record in rows]
     return validate_dataframe(
-        pd.DataFrame(rows), profile="clearml-yolo", options=ValidationOptions(emit_warnings=False), **kwargs
+        pd.DataFrame(rows), profile=profile, options=ValidationOptions(emit_warnings=False), **kwargs
     )
 
 
@@ -40,15 +42,15 @@ def test_malformed_box_quarantines_whole_image_without_synthetic_background():
     assert result.clean_image_count == 1
 
 
-def test_duplicates_keep_first_across_labels_without_quarantining_image():
-    result = validate([row(), row(), row(instance_label="dog")])
+def test_cveta_duplicates_keep_first_across_labels_without_quarantining_image():
+    result = validate([row(), row(), row(instance_label="dog")], profile="cveta2")
     assert result.clean_row_positions == (0,)
     assert result.reasons_for(1)[0].code == "duplicate_row"
     assert result.reasons_for(2)[0].code == "high_iou"
 
 
 def test_quarantine_precedes_duplicate_removal():
-    result = validate([row(confidence=2), row(confidence=2)])
+    result = validate([row(bbox_x_br=2), row(bbox_x_br=2)])
     assert result.clean.empty
     assert not any(i.code in {"duplicate_row", "high_iou"} for i in result.issues)
 
@@ -57,31 +59,34 @@ def test_outside_bounds_is_recoverable_whole_image_rejection():
     from ed_killer import DatasetWarning, validate_dataframe
 
     with pytest.warns(DatasetWarning, match="reject"):
-        result = validate_dataframe(pd.DataFrame([row(bbox_x_br=101), row()]), profile="clearml-yolo")
+        result = validate_dataframe(pd.DataFrame([row(bbox_x_br=110), row()]), profile="clearml-yolo")
     assert result.clean.empty
     assert any(i.code == "out_of_bounds" for i in result.reasons_for(0))
 
 
-def test_history_and_missing_task_ids_are_separate_per_image():
-    result = validate([row(task_id=1), row(task_id=2), row(task_id=None), row(task_id=None)])
+def test_cveta_history_and_missing_task_ids_are_separate_per_image():
+    result = validate(
+        [row(task_id=1), row(task_id=2), row(task_id=None), row(task_id=None)], profile="cveta2"
+    )
     assert result.clean_row_positions == (0, 1, 2)
     assert any(i.code == "unscoped_task" for i in result.warnings)
 
 
-def test_malformed_annotation_quarantines_only_its_task():
-    result = validate([row(task_id=1, bbox_x_br=0), row(task_id=1), row(task_id=2)])
+def test_cveta_malformed_annotation_quarantines_only_its_task():
+    result = validate([row(task_id=1, bbox_x_br=0), row(task_id=1), row(task_id=2)], profile="cveta2")
     assert result.clean_row_positions == (2,)
 
 
 def test_original_indices_values_and_unknown_container_columns_survive():
-    from ed_killer import DatasetWarning, validate_dataframe
+    from ed_killer import validate_dataframe
 
     frame = pd.DataFrame(
         [row(instance_label="001", extra={"a": [1]}), row("b.jpg", extra={"a": [2]})], index=[7, 7]
     )
     original = frame.copy(deep=True)
-    with pytest.warns(DatasetWarning, match="extra"):
+    with warnings.catch_warnings(record=True) as seen:
         result = validate_dataframe(frame, profile="clearml-yolo")
+    assert not seen
     pd.testing.assert_frame_equal(result.clean, original)
     pd.testing.assert_frame_equal(frame, original)
 
@@ -153,8 +158,8 @@ def test_cveta_optional_identity_uses_first_nonmissing_owner():
     assert {"path_conflict", "split_conflict"}.issubset({i.code for i in result.issues})
 
 
-def test_large_distinct_integer_task_ids_are_not_rounded_into_one_task():
-    result = validate([row(task_id="9007199254740992"), row(task_id="9007199254740993")])
+def test_cveta_large_distinct_integer_task_ids_are_not_rounded_into_one_task():
+    result = validate([row(task_id="9007199254740992"), row(task_id="9007199254740993")], profile="cveta2")
     assert result.clean_row_positions == (0, 1)
 
 
@@ -167,8 +172,8 @@ def test_valid_empty_table_is_successful_and_warns():
     assert result.clean.empty
 
 
-def test_rotation_warns_and_still_uses_axis_aligned_iou():
-    result = validate([row(rotation=90), row(rotation=0)])
+def test_cveta_rotation_warns_and_still_uses_axis_aligned_iou():
+    result = validate([row(rotation=90), row(rotation=0)], profile="cveta2")
     assert result.clean_row_positions == (0,)
     assert any(i.code == "rotation_ignored" for i in result.warnings)
 
@@ -195,7 +200,8 @@ def test_media_dimensions_are_used_and_mismatch_quarantines(tmp_path):
     options = ValidationOptions(check_images=True, base_dir=tmp_path, emit_warnings=False)
     frame = pd.DataFrame([row(image_width=20, image_height=30, bbox_x_br=21)])
     result = validate_dataframe(frame, profile="clearml-yolo", options=options)
-    assert any(i.code == "out_of_bounds" for i in result.issues)
+    assert result.is_valid
+    assert any(i.code == "bbox_clipped" for i in result.issues)
     frame.loc[0, "image_width"] = 21
     result = validate_dataframe(frame, profile="clearml-yolo", options=options)
     assert any(i.code == "image_dimension_mismatch" for i in result.issues)
@@ -210,7 +216,7 @@ def test_warning_emission_can_be_disabled():
 
 @pytest.mark.parametrize("right,expected", [(98.999, (0, 1)), (99, (0,)), (99.001, (0,))])
 def test_default_iou_boundary_is_inclusive_at_point_99(right, expected):
-    result = validate([row(bbox_x_br=100), row(bbox_x_br=right, instance_label="dog")])
+    result = validate([row(bbox_x_br=100), row(bbox_x_br=right)])
     assert result.clean_row_positions == expected
 
 
@@ -226,12 +232,14 @@ def test_nonlocal_image_path_is_invalid_without_attempting_network():
     assert any(i.code == "invalid_local_path" for i in result.issues)
 
 
-def test_uncomparable_extra_cells_warn_without_rejecting_negative_rows():
+def test_cveta_uncomparable_extra_cells_warn_without_rejecting_negative_rows():
     class Opaque:
         __hash__ = None
 
-    empty = dict(instance_label="", bbox_x_tl="", bbox_y_tl="", bbox_x_br="", bbox_y_br="")
-    result = validate([row(**empty, extra=Opaque()), row(**empty, extra=Opaque())])
+    empty = dict(
+        instance_shape="none", instance_label="", bbox_x_tl="", bbox_y_tl="", bbox_x_br="", bbox_y_br=""
+    )
+    result = validate([row(**empty, extra=Opaque()), row(**empty, extra=Opaque())], profile="cveta2")
     assert result.is_valid
     assert result.clean_row_positions == (0, 1)
     assert any(issue.code == "exact_comparison_unavailable" for issue in result.warnings)

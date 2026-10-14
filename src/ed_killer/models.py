@@ -44,7 +44,7 @@ class DatasetInputError(ValueError):
 
 @dataclass(frozen=True)
 class ValidationResult:
-    """Original row subsets and a complete, separate diagnostic report."""
+    """Clean rows with accepted repairs, original broken rows and positional diagnostics."""
 
     profile: Profile
     clean: pd.DataFrame

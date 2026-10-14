@@ -7,6 +7,13 @@ Status: proposed integration only. This package does not modify or import either
 The implementation was grounded in cveta2 v0.8.0 at `55e56b3` and clearml-yolo at
 `370d321`. These are source observations, not a guarantee about future revisions.
 
+Dated observation (2026-10-14): the local clearml-yolo source at `7ae9153` was
+inspected for the approved [training-validation task](plans/clearml-training-validation/plan.md).
+Its training boundary validates the eight training fields while treating producer
+metadata as outside that contract. The stricter geometry, bounded cleanup and
+class-conflict policies below are intentional standalone policy choices, not claims
+that the consumer already implements them.
+
 - cveta2: [record models and canonical columns](https://github.com/BuckanovNikita/cveta2/blob/55e56b3/cveta2/models.py),
   [lexical CSV reader](https://github.com/BuckanovNikita/cveta2/blob/55e56b3/cveta2/services/output.py),
   [public API](https://github.com/BuckanovNikita/cveta2/blob/55e56b3/cveta2/api.py).
@@ -23,12 +30,16 @@ does not replace consumer lockfiles.
 
 Use `validate_dataframe(frame, profile=..., options=...)` for an existing DataFrame,
 or `validate_csv(path, profile=..., options=...)` for lossless lexical CSV reading.
-Both return `ValidationResult` with original clean/broken rows, positional lineage,
-and all diagnostics. DataFrames may have duplicated index labels; translate findings
+Both return `ValidationResult` with clean/broken rows, positional lineage, and all
+diagnostics. Input and broken rows retain original cells; clearml-yolo clean rows
+can contain accepted coordinate repairs, with before/after diagnostics. DataFrames
+may have duplicated index labels; translate findings
 using positional IDs rather than joins on the original index.
 
-No numeric coercion, class remapping, split assignment, latest-task selection,
-background synthesis or remote I/O happens here. A consumer must explicitly choose
+No general numeric coercion, class remapping, split assignment, latest-task selection,
+background synthesis or remote I/O happens here. Only clearml-yolo bounding-box
+coordinates can be corrected under the documented bounded repair policy. A consumer
+must explicitly choose
 to proceed with `result.clean`; `is_valid=False` does not raise automatically.
 Consumers needing a strict boundary should check `structural_errors` and
 `broken_row_positions` and translate `issues` into their existing exception/report types.
@@ -104,18 +115,34 @@ validation = validate_csv(
 # Consumer-specific training eligibility and record construction follow here.
 ```
 
-Three changes require explicit migration tests and release notes in the consumer:
+The clearml-yolo profile validates `image_name`, `image_path`, `instance_label`,
+four bbox coordinates and `split`, plus optional `image_width`, `image_height`,
+`width` and `height`. All other metadata is preserved and ignored without warnings,
+including issue state/text mismatches, shapes, task IDs, rotation and confidence.
+Task IDs do not split image quarantine or geometry comparison groups.
 
-| Current behavior | Standalone validator |
+These policies require explicit migration tests and release notes in the consumer:
+
+| Consumer boundary or existing behavior | Standalone validator policy |
 |---|---|
-| Invalid boxes may leave an image represented as background | Any malformed annotation quarantines its whole image/task; no synthetic negatives |
-| Training rejects exact same-label/box duplicates; evaluation uses class-agnostic IoU >0.99 | Keep first; reject later full-row or class-agnostic IoU >=0.99 duplicates |
-| Training record conversion loses extra CSV columns | Clean/broken frames preserve extras and warn about unknown fields |
+| Invalid boxes may leave an image represented as background | Any malformed annotation quarantines its whole image; no synthetic negatives |
+| Consumer geometry acceptance differs | Finite width >2 px, height >2 px and area >2 square pixels are required |
+| Out-of-bounds geometry needs an explicit cleanup policy | Clip only with trustworthy dimensions, every crossed edge strictly <10 px overflow and valid original/final minimum geometry; otherwise quarantine |
+| Training rejects exact same-label/box duplicates; evaluation uses class-agnostic IoU >0.99 | Within image/class, keep earliest row and remove later exact or near duplicates at IoU >= threshold (default 0.99), comparing retained representatives only |
+| Overlaps across classes need an explicit conflict policy | Cross-class IoU >= threshold yields `class_conflict` and image quarantine before duplicate pruning |
+| Training record conversion loses extra CSV columns | Preserve metadata without validating it or emitting metadata warnings |
+
+Negative left/top edges are eligible for bounded repair. Nonfinite, reversed and
+undersized boxes, missing/conflicting dimensions, overflow of 10 px or more, and
+clipped geometry failing the minimums are never repaired. Only retained repaired
+rows receive `bbox_clipped`; their clean cells contain new coordinates while input
+and broken retain originals. Direct `schema_for` checks never repair. Repair-only
+results are valid; duplicate removal still makes strict CLI validation exit 1.
 
 Existing clearml-yolo class vocabulary includes labels found only in dropped boxes.
 Choose and document whether the future adapter preserves that vocabulary or derives
 it from clean data. This package deliberately does not choose a class vocabulary.
-Likewise, keep-first duplicate cleanup does not resolve conflicting labels by confidence.
+Cross-class conflicts are reported rather than resolved by confidence.
 
 ## Adoption sequence and acceptance
 
@@ -128,7 +155,11 @@ Fixtures must cover complete/sparse cveta exports; unassigned splits; historical
 tasks; polygon envelopes outside images; rotated rectangles; Unicode and numeric-looking
 labels; clearml backgrounds; path/split collisions; malformed geometry; duplicate
 index labels; same/different-class overlaps below/at/above 0.99; and images whose
-annotations all fail. Verify that conversion/training membership matches the
+annotations all fail; ignored malformed metadata; size boundaries at 2 pixels; each
+clipped edge below/at/above 10 pixels; conflicting/missing dimensions; repaired boxes
+that become duplicates; cross-class conflicts hidden behind duplicates; retained
+representative chains; and original versus repaired cells with duplicate indices.
+Verify that conversion/training membership matches the
 approved cleanup policy, not just that aggregate row counts match.
 
 Before merging either adoption, run that repository's own full relevant tests and

@@ -23,7 +23,7 @@ def _metadata_names(columns: list[str]) -> dict[str, str]:
 
 
 def report_dict(result: ValidationResult) -> dict[str, Any]:
-    """Return JSON-ready data; original cell values stay in the CSV outputs."""
+    """Return JSON-ready diagnostics; clean CSV may contain explicitly reported coordinate repairs."""
     return {
         "profile": result.profile,
         "is_valid": result.is_valid,

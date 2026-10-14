@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from ed_killer.geometry import find_duplicates
+from ed_killer import geometry
+from ed_killer.geometry import BOX_COLUMNS, find_duplicates
 
 
 def boxes(*rows: tuple[object, ...], positions: list[int] | None = None) -> pd.DataFrame:
@@ -148,3 +149,88 @@ def test_opaque_extras_warn_without_guessing_equality_and_still_check_iou() -> N
     assert all(
         issue.severity == "warning" for issue in issues if issue.code == "exact_comparison_unavailable"
     )
+
+
+def test_class_conflicts_include_both_endpoints_of_every_cross_class_pair() -> None:
+    frame = boxes(
+        ("a", "cat", 0, 0, 10, 10),
+        ("a", "dog", 0, 0, 10, 10),
+        ("a", "bird", 0, 0, 10, 10),
+        positions=[2, 8, 13],
+    )
+    original = frame.copy(deep=True)
+    issues = geometry.find_class_conflicts(frame, [(13, 2, 8)], iou_threshold=1)
+    assert [(issue.row_position, issue.related_rows) for issue in issues] == [
+        (2, (8,)),
+        (8, (2,)),
+        (2, (13,)),
+        (13, (2,)),
+        (8, (13,)),
+        (13, (8,)),
+    ]
+    assert all(issue.code == "class_conflict" and issue.severity == "error" for issue in issues)
+    assert all(issue.columns == ("instance_label", *BOX_COLUMNS) for issue in issues)
+    assert all(issue.iou == 1 and "class" in issue.message.lower() for issue in issues)
+    pd.testing.assert_frame_equal(frame, original)
+
+
+def test_class_conflicts_consider_rows_that_same_class_deduplication_would_remove() -> None:
+    frame = boxes(
+        ("a", "cat", 0, 0, 10, 10),
+        ("a", "cat", 2, 0, 12, 10),
+        ("a", "dog", 4, 0, 14, 10),
+    )
+    assert [
+        (issue.row_position, issue.related_rows)
+        for issue in find_duplicates(frame, [(0, 1)], iou_threshold=0.6)
+    ] == [(1, (0,))]
+    issues = geometry.find_class_conflicts(frame, [(0, 1, 2)], iou_threshold=0.6)
+    assert [(issue.row_position, issue.related_rows) for issue in issues] == [(1, (2,)), (2, (1,))]
+    assert all(issue.iou == pytest.approx(2 / 3) for issue in issues)
+
+
+def test_class_conflict_threshold_is_inclusive() -> None:
+    frame = boxes(("a", "cat", 0, 0, 3, 3), ("a", "dog", 1, 0, 4, 3))
+    issues = geometry.find_class_conflicts(frame, [(0, 1)], iou_threshold=0.5)
+    assert len(issues) == 2
+    assert all(issue.iou == pytest.approx(0.5) for issue in issues)
+    assert geometry.find_class_conflicts(frame, [(0, 1)], iou_threshold=0.50001) == []
+
+
+def test_class_conflicts_keep_group_histories_independent_and_skip_same_class() -> None:
+    frame = boxes(
+        ("a", "cat", 0, 0, 10, 10),
+        ("a", "cat", 0, 0, 10, 10),
+        ("b", "dog", 0, 0, 10, 10),
+        ("b", "bird", 0, 0, 10, 10),
+        positions=[3, 9, 12, 18],
+    )
+    issues = geometry.find_class_conflicts(frame, [(3, 9), (12,), (18,)], iou_threshold=1)
+    assert issues == []
+
+
+@pytest.mark.parametrize("empty", [None, "", pd.NA, np.nan])
+def test_class_conflicts_skip_empty_negative_boxes(empty: object) -> None:
+    frame = boxes(
+        ("a", "cat", 0, 0, 10, 10),
+        ("a", "", empty, empty, empty, empty),
+        ("a", "dog", 0, 0, 10, 10),
+    )
+    issues = geometry.find_class_conflicts(frame, [(0, 1, 2)], iou_threshold=1)
+    assert [(issue.row_position, issue.related_rows) for issue in issues] == [(0, (2,)), (2, (0,))]
+
+
+@pytest.mark.parametrize("extent", [1e200, 1e-200])
+def test_class_conflict_iou_is_stable_for_extreme_finite_coordinates(extent: float) -> None:
+    frame = boxes(("a", "cat", 0, 0, extent, extent), ("a", "dog", 0, 0, extent, extent))
+    with np.errstate(over="raise", invalid="raise", divide="raise"):
+        issues = geometry.find_class_conflicts(frame, [(0, 1)], iou_threshold=1)
+    assert [(issue.row_position, issue.iou) for issue in issues] == [(0, 1), (1, 1)]
+
+
+def test_class_conflicts_use_original_labels_and_ignore_opaque_metadata() -> None:
+    frame = boxes(("a", "01", "0", "0", "10", "10"), ("a", "1", "0.0", "0", "10", "10"))
+    frame["extra"] = [OpaqueExtra(), OpaqueExtra()]
+    issues = geometry.find_class_conflicts(frame, [(0, 1)], iou_threshold=1)
+    assert len(issues) == 2
+    assert all(issue.code == "class_conflict" for issue in issues)
