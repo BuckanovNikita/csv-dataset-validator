@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## Unreleased
+
+### Documentation
+
+- Record clearml cleanup release verification
+  ([`50dca21`](https://github.com/BuckanovNikita/ed-killer/commit/50dca21aac416b165367102c5b8c84796429cefd))
+
+
 ## v0.4.0 (2026-10-14)
 
 ### Features

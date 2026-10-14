@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "task": "Python workflow alignment",
+  "scope": ["AGENTS.md", "docs/development.md", "docs/plans/python-workflow-alignment", "docs/evidence/2026-10-14-python-workflow-alignment.md", "CHANGELOG.md"],
+  "impact": "none",
+  "rationale": "Inspected AGENTS.md, CLAUDE.md, pyproject.toml, uv.lock, architecture tests, release hooks/helper and completed task records. Only project workflow instructions, a linked development procedure, task/evidence prose and any native hook-generated changelog refresh change; runtime modules, dependency configuration, composition targets, executable import contracts and release tooling remain untouched."
+}
