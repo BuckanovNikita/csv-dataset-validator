@@ -5,6 +5,9 @@
 
 ### Documentation
 
+- Align development with shared Python workflow
+  ([`4eee49b`](https://github.com/BuckanovNikita/ed-killer/commit/4eee49b3fd70312ac1fcc700d374c1f390bff7ef))
+
 - Record clearml cleanup release verification
   ([`50dca21`](https://github.com/BuckanovNikita/ed-killer/commit/50dca21aac416b165367102c5b8c84796429cefd))
 

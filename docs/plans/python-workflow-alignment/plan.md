@@ -40,7 +40,7 @@ documentation checks, complete-diff reconciliation and parent review.
       reconcile only the owned documentation diff and record actual dated results.
 - [x] Parent: obtain fresh final review, resolve findings and validate architecture
       acceptance against the complete owned diff and actual check evidence.
-- [ ] Parent: evaluate/complete the existing release workflow.
+- [x] Parent: evaluate/complete the existing release workflow.
 
 The focused repository check is
 `uv run --locked --no-sync pytest tests/test_architecture.py::test_local_documentation_links_resolve`.

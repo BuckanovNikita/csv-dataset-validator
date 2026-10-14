@@ -65,3 +65,21 @@ settings are not exposed. Architecture acceptance and delivery follow this state
 Architecture acceptance validation passed (exit 0) after complete-diff
 reconciliation and review. Markdown and whitespace checks passed on the updated
 evidence. Implementation and acceptance are complete; native delivery is pending.
+
+## Native delivery
+
+Contributor commit `4eee49b3fd70312ac1fcc700d374c1f390bff7ef` passed native hooks.
+The initial attempt refreshed CHANGELOG.md from previously committed history;
+the generated documentation entry was inspected and staged before a normal retry.
+Code-only hooks had no matching files and were skipped, not counted as passing
+application checks. No runtime, dependency, lockfile or release-tool change occurred.
+
+The clean main checkout fast-forwarded to the contributor commit. Running the
+native release helper there returned exit 0, `No unreleased semantic changes`.
+Version 0.4.0 and the existing version tag remain unchanged. The atomic main push
+succeeded; `git ls-remote` confirmed remote main equals the contributor commit
+and the peeled v0.4.0 tag remains `4c1c9694ca8922874e07ddd3edf0fff9aa9e7f7a`.
+
+This completion record is a subsequent documentation commit following the same
+hooks and no-bump release evaluation. Final delivery refs are reported in the user
+handoff. No GitHub Release, assets, package publication or deployment was performed.
