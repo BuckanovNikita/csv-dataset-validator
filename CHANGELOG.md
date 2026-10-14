@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.4.0 (2026-10-14)
+
+### Features
+
+- **clearml-yolo**: Validate training fields and repair box overflows
+  ([`c6d16c9`](https://github.com/BuckanovNikita/ed-killer/commit/c6d16c950a04d0b3ca87b8f83b5c43b93ecb0abd))
+
+### Breaking Changes
+
+- **clearml-yolo**: Clearml-yolo applies stricter minimum geometry and class-conflict rules, ignores
+  task/shape metadata, and may return repaired clean coordinates.
+
+
 ## v0.3.0 (2026-10-13)
 
 ### Features
