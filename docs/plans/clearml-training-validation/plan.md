@@ -49,7 +49,7 @@ sequential. Delegates may not delegate further or commit.
 - [x] Integrate and run pytest, ruff check/format check, mypy, vulture, lint-imports,
       uv lock --check and uv build; check docs links and Python 3.10 compatibility.
 - [x] Obtain fresh independent review, reconcile diff and record dated acceptance evidence.
-- [ ] Install normal release hooks; commit task-owned changes with Conventional Commits;
+- [x] Install normal release hooks; commit task-owned changes with Conventional Commits;
       inspect hook-generated release and push main plus the explicit version tag atomically.
 
 ## Acceptance cases

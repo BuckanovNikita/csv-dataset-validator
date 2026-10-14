@@ -71,17 +71,16 @@ with aliases, other image rows and measured dimensions. No other findings were r
 
 Parent reproduced five failures plus one passing control, then added clearml-only
 per-axis consistency checks before repair. The focused cleanup/validation suite
-passed 84 tests and mypy passed. Full checks and a new fresh review follow this fix.
-Acceptance reconciliation is pending. The temporary
-Python 3.10 environment will be removed after acceptance. Release commit/tag and
-remote-ref verification remain pending; no deployment is authorized.
+passed 84 tests and mypy passed. At this checkpoint, full checks, a fresh review,
+acceptance, temporary-environment cleanup and release verification were still pending.
+Their completed results appear below.
 
 ## Verification after review correction
 
 Full suites passed again: 356 tests on Python 3.12.13 and 356 on Python 3.10.20.
 Ruff check and format check, mypy, Vulture, all three import contracts, lock freshness,
 local sdist/wheel build and diff whitespace checks passed again after the correction.
-A fresh review of this corrected tree is pending.
+The fresh review of this corrected tree is recorded below.
 
 ## Acceptance
 
@@ -101,5 +100,23 @@ was removed after verification. No task-owned processes remain.
 
 Dense cross-class conflicts may produce quadratic numbers of diagnostic findings;
 working geometry arrays remain linear per image. No consumer integration was performed.
-Release execution follows this accepted source change; generated refs will be recorded
-below after they exist and are verified.
+
+## Release
+
+Normal hooks accepted contributor commit
+`c6d16c950a04d0b3ca87b8f83b5c43b93ecb0abd`
+(`feat(clearml-yolo)!: validate training fields and repair box overflows`) and generated
+release commit `4c1c9694ca8922874e07ddd3edf0fff9aa9e7f7a`
+(`chore(release): 0.4.0`). The inspected release diff contains only the root version
+change in pyproject.toml and uv.lock plus generated CHANGELOG.md entries; dependency
+entries are unchanged. The working tree was clean after the hooks completed.
+
+Annotated tag `v0.4.0`, object `8b0fd5a3d3d787b4e4cea1179f40b1be322989d9`,
+peels to the release commit. `uv lock --check` and `uv build` passed at version 0.4.0,
+producing the source distribution and wheel locally.
+
+`git push --atomic origin main refs/tags/v0.4.0` succeeded. A subsequent
+`git ls-remote` confirmed remote main and the peeled tag both equal the release commit,
+and the remote annotated-tag object matches locally. No GitHub Release, package
+publication or deployment was performed. This completion record is a subsequent
+documentation-only commit; the version tag remains on the verified release commit.
