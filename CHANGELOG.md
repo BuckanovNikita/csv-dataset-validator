@@ -1,7 +1,7 @@
 # CHANGELOG
 
 
-## Unreleased
+## v0.5.0 (2026-10-15)
 
 ### Documentation
 
@@ -13,6 +13,15 @@
 
 - Record Python workflow alignment delivery
   ([`f9904d8`](https://github.com/BuckanovNikita/ed-killer/commit/f9904d8eb99d286c64fedeb3e72d6f27ab9d370f))
+
+### Features
+
+- Require Python 3.12 or 3.13
+  ([`849dadb`](https://github.com/BuckanovNikita/ed-killer/commit/849dadbe33bc6ae58c9ef3fe4f9e92e65567fa90))
+
+### Breaking Changes
+
+- Supported Python is now >=3.12,<3.14; Python 3.10 and 3.11 are no longer supported.
 
 
 ## v0.4.0 (2026-10-14)
