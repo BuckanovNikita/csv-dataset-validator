@@ -14,7 +14,7 @@ Results: [dated evidence](../../evidence/2026-10-15-python-312-313.md).
 - [x] Re-lock without unrelated upgrades; inspect resolved version changes.
 - [x] Verify full quality and both Python interpreters; build and isolated wheel CLI/import.
 - [x] Reconcile owned diff, documentation and evidence for parent review.
-- [ ] Parent: fresh independent final review, architecture acceptance and authorized release.
+- [x] Parent: fresh independent final review, architecture acceptance and authorized release.
 
 No new runtime modules or imports are introduced. Existing runtime and release
 architecture contracts retain their negative forbidden-edge tests. No additional
@@ -34,4 +34,4 @@ changes stay owned by the established release helper.
 
 - [x] Fresh independent final review and parent integration verification.
 - [x] Architecture acceptance record reconciled with reviewed scope and generated release paths.
-- [ ] Complete normal commit/hooks, release tag, atomic branch/tag push and remote verification.
+- [x] Complete normal commit/hooks, release tag, atomic branch/tag push and remote verification.
