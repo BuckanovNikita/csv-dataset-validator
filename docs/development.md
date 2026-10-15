@@ -15,7 +15,8 @@ Inspect instructions, the index/worktree, relevant code/tests, `pyproject.toml`,
 `uv.lock`, current contracts, task artifacts and hooks before editing. Plans express
 intent; implementation and executed checks establish behavior. Record the outcome,
 acceptance behavior, exclusions, stopping point, affected documentation and checks.
-Preserve uv/lockfile, Hatchling, Python 3.12 development and Python 3.10 compatibility.
+Preserve uv/lockfile, Hatchling, Python 3.12 development and
+Python >=3.12,<3.14 compatibility.
 
 Record affected module responsibilities, interfaces/invariants, permitted and
 forbidden dependencies, effect ownership and executable import coverage in the
@@ -48,8 +49,8 @@ checks/review as warranted within this process; report unavailable review as a g
 Runtime changes require focused behavior/regression coverage and the established
 full gates: `uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .`,
 `uv run mypy`, `uv run vulture`, `uv run lint-imports`, `uv lock --check` and
-`uv build`. Verify the original failure path for fixes. Check Python 3.10 behavior
-when compatibility is affected. Public API/CLI/configuration changes also check
+`uv build`. Verify the original failure path for fixes. Check Python 3.12 and 3.13
+behavior when compatibility is affected. Public API/CLI/configuration changes also check
 actual imports, commands, exit codes and affected examples. Packaging changes add
 an isolated built-wheel install with imports/CLI exercised outside the checkout.
 Release tooling changes exercise real temporary Git repositories and recovery paths.

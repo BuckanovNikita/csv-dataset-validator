@@ -21,8 +21,8 @@ that the consumer already implements them.
   [stage schemas](https://github.com/BuckanovNikita/clearml-yolo/blob/370d321/src/clearml_yolo/core/validation/schemas.py),
   [evaluation preparation](https://github.com/BuckanovNikita/clearml-yolo/blob/370d321/src/clearml_yolo/adapters/evaluation/scoring.py).
 
-Python >=3.10 retains cveta2's interpreter floor. Pandera `>=0.34.1,<0.35` and
-pandas >=2.1.1 intersect the inspected consumers' requirements. Resolve and test
+Python >=3.12,<3.14 is required by this library. Pandera `>=0.34.1,<0.35` and pandas
+>=2.1.1 intersect the inspected consumers' requirements. Resolve and test
 each consumer's complete dependency graph when adopting; this package's lockfile
 does not replace consumer lockfiles.
 

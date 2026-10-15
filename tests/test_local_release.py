@@ -4,15 +4,11 @@ import json
 import os
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
 import yaml
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 HELPER = ROOT / "scripts/local_release.py"
@@ -97,8 +93,7 @@ def release_repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     (repo / ".pre-commit-config.yaml").write_text(yaml.safe_dump(config))
     (repo / "check.py").write_text(
         "from pathlib import Path\nimport sys\n"
-        "if sys.version_info >= (3, 11):\n    import tomllib\n"
-        "else:\n    import tomli as tomllib\n"
+        "import tomllib\n"
         "version = tomllib.loads(Path('pyproject.toml').read_text())['project']['version']\n"
         "with Path('.git/checks').open('a') as stream: stream.write(version + '\\n')\n"
         "sys.exit(int(Path('.git/reject-release').exists() and version != '0.3.0'))\n"

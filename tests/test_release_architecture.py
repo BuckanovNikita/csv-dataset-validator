@@ -4,16 +4,11 @@ import ast
 import copy
 import re
 import shlex
-import sys
+import tomllib
 from pathlib import Path
 
 import pytest
 import yaml
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 RELEASE_PACKAGES = {"python-semantic-release", "tomli", "pyyaml", "types-pyyaml"}

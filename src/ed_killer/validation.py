@@ -448,9 +448,9 @@ def _finish(
                     if not isinstance(clean[column].dtype, pd.StringDtype):
                         clean[column] = clean[column].astype(object)
                     converted_columns.add(column)
-                clean.iat[output_positions[position], int(clean.columns.get_loc(column))] = repaired_frame.at[
-                    position, column
-                ]
+                clean.iat[output_positions[position], cast(int, clean.columns.get_loc(column))] = (
+                    repaired_frame.at[position, column]
+                )
             issues.append(repair)
     issues.sort(key=lambda i: -1 if i.row_position is None else i.row_position)
     if options.emit_warnings:

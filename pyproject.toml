@@ -7,7 +7,7 @@ name = "ed-killer"
 version = "0.4.0"
 description = "Explainable Pandera validation and cleanup of cveta2 and clearml-yolo datasets"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12,<3.14"
 dependencies = [
     "loguru>=0.7.3",
     "pydantic>=2.10",
@@ -40,21 +40,19 @@ dev = [
     "import-linter>=2",
     "pillow>=10",
     "python-semantic-release>=10.6.1,<11",
-    # Also installed on newer interpreters for mypy's Python 3.10 target.
-    "tomli>=2",
     "pyyaml>=6",
     "types-pyyaml>=6",
 ]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py312"
 line-length = 110
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
 strict = true
 files = ["src", "scripts"]
 

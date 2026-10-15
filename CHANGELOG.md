@@ -11,6 +11,9 @@
 - Record clearml cleanup release verification
   ([`50dca21`](https://github.com/BuckanovNikita/ed-killer/commit/50dca21aac416b165367102c5b8c84796429cefd))
 
+- Record Python workflow alignment delivery
+  ([`f9904d8`](https://github.com/BuckanovNikita/ed-killer/commit/f9904d8eb99d286c64fedeb3e72d6f27ab9d370f))
+
 
 ## v0.4.0 (2026-10-14)
 

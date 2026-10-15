@@ -50,8 +50,8 @@ After a qualifying main commit, the post-commit helper:
 
 The recursion guard suppresses only nested release/changelog execution; quality checks
 still run. Release tooling never imports the validator or consumer applications, and
-the installed validator has no release-tool dependency. Python 3.10 uses the development
-dependency `tomli`; newer interpreters use `tomllib`.
+the installed validator has no release-tool dependency. The supported Python 3.12
+and 3.13 interpreters use standard-library `tomllib`.
 
 ## Retry and recovery
 

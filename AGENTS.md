@@ -1,7 +1,7 @@
 # ED Killer
 
 Portable Python library and CLI for cveta2 and clearml-yolo annotation CSVs.
-Use uv and the checked-in lockfile. Develop on Python 3.12; preserve Python 3.10 compatibility.
+Use uv and the checked-in lockfile. Develop on Python 3.12; support Python >=3.12,<3.14.
 Do not use `from __future__ import annotations`.
 
 Keep extra columns, untouched source values, row order and caller indices intact.

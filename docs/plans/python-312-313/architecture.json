@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "task": "Support Python 3.12 and 3.13 exclusively",
+  "scope": [
+    "pyproject.toml",
+    "uv.lock",
+    ".github/workflows/check.yml",
+    "scripts/local_release.py",
+    "tests/test_local_release.py",
+    "tests/test_release_architecture.py",
+    "AGENTS.md",
+    "README.md",
+    "docs/development.md",
+    "docs/integration-plan.md",
+    "docs/releases.md",
+    "docs/plans/python-312-313",
+    "docs/evidence/2026-10-15-python-312-313.md",
+    "src/ed_killer/validation.py",
+    "CHANGELOG.md"
+  ],
+  "impact": "modules",
+  "rules": "Preserve runtime module boundaries and release isolation. Raise explicitly requested Python floor to 3.12 and exclude 3.14; no dependency upgrades or consumer edits.",
+  "modules": [
+    {
+      "id": "metadata",
+      "path": "pyproject.toml",
+      "change": "modify",
+      "responsibility": "Declare supported Python range, lint/type minimum and development dependencies",
+      "interface": "Existing package, CLI, release and check interfaces remain stable except explicitly narrowed Requires-Python compatibility.",
+      "layer": "Development composition",
+      "allowed_dependencies": [
+        "Existing project tools",
+        "Python standard library"
+      ],
+      "forbidden_dependencies": [
+        "Consumer runtime imports",
+        "Release tooling in validator runtime"
+      ],
+      "effects": "Only existing task-owned local verification/build effects; release helper retains existing guarded Git effects, authorized native delivery occurs only after accepted review and checks; only normal Git commit/tag and explicit branch/tag push effects.",
+      "contracts": [
+        "release-isolation",
+        "runtime-isolation"
+      ]
+    },
+    {
+      "id": "ci",
+      "path": ".github/workflows/check.yml",
+      "change": "modify",
+      "responsibility": "Verify both supported interpreters with existing checks",
+      "interface": "Existing package, CLI, release and check interfaces remain stable except explicitly narrowed Requires-Python compatibility.",
+      "layer": "Development composition",
+      "allowed_dependencies": [
+        "Existing project tools",
+        "Python standard library"
+      ],
+      "forbidden_dependencies": [
+        "Consumer runtime imports",
+        "Release tooling in validator runtime"
+      ],
+      "effects": "Only existing task-owned local verification/build effects; release helper retains existing guarded Git effects, authorized native delivery occurs only after accepted review and checks; only normal Git commit/tag and explicit branch/tag push effects.",
+      "contracts": [
+        "release-isolation"
+      ]
+    },
+    {
+      "id": "release",
+      "path": "scripts/local_release.py",
+      "change": "modify",
+      "responsibility": "Use standard-library TOML parser available on supported Python without changing release coordination",
+      "interface": "Existing package, CLI, release and check interfaces remain stable except explicitly narrowed Requires-Python compatibility.",
+      "layer": "Release process adapter",
+      "allowed_dependencies": [
+        "Existing project tools",
+        "Python standard library"
+      ],
+      "forbidden_dependencies": [
+        "Consumer runtime imports",
+        "Release tooling in validator runtime"
+      ],
+      "effects": "Only existing task-owned local verification/build effects; release helper retains existing guarded Git effects, authorized native delivery occurs only after accepted review and checks; only normal Git commit/tag and explicit branch/tag push effects.",
+      "contracts": [
+        "release-isolation"
+      ]
+    },
+    {
+      "id": "release-tests",
+      "path": "tests/test_local_release.py",
+      "change": "modify",
+      "responsibility": "Exercise release integration in owned temporary Git repositories on supported Python",
+      "interface": "Existing package, CLI, release and check interfaces remain stable except explicitly narrowed Requires-Python compatibility.",
+      "layer": "Development composition",
+      "allowed_dependencies": [
+        "Existing project tools",
+        "Python standard library"
+      ],
+      "forbidden_dependencies": [
+        "Consumer runtime imports",
+        "Release tooling in validator runtime"
+      ],
+      "effects": "Only existing task-owned local verification/build effects; release helper retains existing guarded Git effects, authorized native delivery occurs only after accepted review and checks; only normal Git commit/tag and explicit branch/tag push effects.",
+      "contracts": [
+        "release-isolation"
+      ]
+    },
+    {
+      "id": "release-architecture",
+      "path": "tests/test_release_architecture.py",
+      "change": "modify",
+      "responsibility": "Enforce existing development/runtime boundaries using standard-library TOML",
+      "interface": "Existing package, CLI, release and check interfaces remain stable except explicitly narrowed Requires-Python compatibility.",
+      "layer": "Development composition",
+      "allowed_dependencies": [
+        "Existing project tools",
+        "Python standard library"
+      ],
+      "forbidden_dependencies": [
+        "Consumer runtime imports",
+        "Release tooling in validator runtime"
+      ],
+      "effects": "Only existing task-owned local verification/build effects; release helper retains existing guarded Git effects, authorized native delivery occurs only after accepted review and checks; only normal Git commit/tag and explicit branch/tag push effects.",
+      "contracts": [
+        "release-isolation"
+      ]
+    },
+    {
+      "id": "validation-typing",
+      "path": "src/ed_killer/validation.py",
+      "change": "modify",
+      "responsibility": "Preserve positional lineage and accepted coordinate repair assignment with explicit typing for validated unique-column lookup.",
+      "interface": "Unique nonempty column names are already validated; get_loc returns the integer position used by iat. Add a static cast only; runtime values and errors are unchanged.",
+      "layer": "Validation application policy",
+      "allowed_dependencies": [
+        "Existing ed_killer pure helpers",
+        "pandas",
+        "typing.cast"
+      ],
+      "forbidden_dependencies": [
+        "ed_killer.cli",
+        "ed_killer.reporting",
+        "ed_killer.csv_io",
+        "Consumer applications"
+      ],
+      "effects": "Existing in-memory DataFrame copies and repairs; no new effects.",
+      "contracts": [
+        "runtime-isolation"
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "id": "release-isolation",
+      "path": "tests/test_release_architecture.py",
+      "status": "existing",
+      "rules": "Release tooling must not import validator or consumers; runtime cannot import release tooling; publication remains prohibited. Existing injected-edge negative tests enforce separation.",
+      "check": "architecture"
+    },
+    {
+      "id": "runtime-isolation",
+      "path": "tests/test_architecture.py",
+      "status": "existing",
+      "rules": "Validation cannot import outer I/O or consumer applications; facade cannot compose effects. Existing negative imports prove forbidden edges fail.",
+      "check": "architecture"
+    }
+  ],
+  "checks": [
+    {
+      "id": "architecture",
+      "kind": "imports",
+      "command": "uv run --locked --no-sync pytest tests/test_architecture.py tests/test_release_architecture.py; uv run --locked --no-sync lint-imports",
+      "expectation": "Existing positive and forbidden-edge negative checks pass.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-15-python-312-313.md"
+      }
+    },
+    {
+      "id": "quality",
+      "kind": "behavior",
+      "command": "uv run --locked --no-sync pytest; uv run --locked --no-sync ruff check .; uv run --locked --no-sync ruff format --check .; uv run --locked --no-sync mypy; uv run --locked --no-sync vulture; uv lock --check; uv build",
+      "expectation": "Full quality and lock/build checks pass; full tests pass on Python 3.12 and 3.13.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-15-python-312-313.md"
+      }
+    },
+    {
+      "id": "wheel",
+      "kind": "behavior",
+      "command": "Install built wheel into task-owned Python 3.12 and 3.13 environments outside checkout; import ed_killer and run ed-killer --help",
+      "expectation": "Built metadata requires >=3.12,<3.14; installed imports and CLI pass on each supported interpreter.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-15-python-312-313.md"
+      }
+    },
+    {
+      "id": "documentation",
+      "kind": "documentation",
+      "command": "uv run --locked --no-sync pytest tests/test_architecture.py::test_local_documentation_links_resolve; git diff --check",
+      "expectation": "Maintained compatibility guidance agrees with supported range; local links and whitespace checks pass.",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-15-python-312-313.md"
+      }
+    }
+  ],
+  "documentation": "Update current README, AGENTS, development, integration and release compatibility guidance. Preserve historical completed plans/evidence. No annotation schema, validation or consumer API behavior changes.",
+  "review": {
+    "status": "accepted",
+    "reviewer": "Independent native agent /root/python_window_review (GPT-6.1 Sol requested high); parent integration and verification /root",
+    "evidence": "docs/evidence/2026-10-15-python-312-313.md",
+    "reconciliation": "Parent inspected integrated task-owned diff and repeated full suite (356 passed). Independent reviewer returned ship with no findings, accepting Python and architecture ownership, justified cast/tomllib changes and unchanged dependency versions/sources. Fifteen implementation/doc files plus hook-generated CHANGELOG.md and release-owned version-only pyproject.toml/uv.lock changes are task-owned; no unrelated changes, renames or deletions. Existing release helper alone owns generated changelog/version/tag; main remains the canonical branch."
+  }
+}
