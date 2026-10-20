@@ -18,9 +18,11 @@ dependencies = [
 
 [project.optional-dependencies]
 images = ["pillow>=10"]
+clearml = ["clearml[s3]>=2.1.12,<3", "pyyaml>=6", "pillow>=10"]
 
 [project.scripts]
 ed-killer = "ed_killer.cli:main"
+ed-killer-upload = "ed_killer.upload.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ed_killer"]
@@ -50,6 +52,8 @@ line-length = 110
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+# Preserve Vulture's targeted Protocol keyword-argument false-positive markers.
+external = ["V"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -81,7 +85,7 @@ containers = ["ed_killer"]
 exhaustive = true
 layers = [
     "__main__",
-    "cli",
+    "cli | upload",
     "csv_io | reporting",
     "validation",
     "schema | geometry | media",
@@ -93,6 +97,25 @@ name = "Report output accepts results without invoking validation"
 type = "forbidden"
 source_modules = ["ed_killer.reporting"]
 forbidden_modules = ["ed_killer.validation"]
+
+[[tool.importlinter.contracts]]
+name = "Upload orchestration and independent adapters follow downward layers"
+type = "layers"
+containers = ["ed_killer.upload"]
+exhaustive = true
+layers = [
+    "cli",
+    "workflow | files | remote",
+    "validation | tasks",
+    "classes | paths | ports",
+    "models",
+]
+
+[[tool.importlinter.contracts]]
+name = "Workflow uses injected file and network adapters"
+type = "forbidden"
+source_modules = ["ed_killer.upload.workflow"]
+forbidden_modules = ["ed_killer.upload.files", "ed_killer.upload.remote"]
 
 [tool.semantic_release]
 commit_parser = "conventional"

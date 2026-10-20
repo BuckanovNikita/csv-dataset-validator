@@ -56,6 +56,13 @@ an isolated built-wheel install with imports/CLI exercised outside the checkout.
 Release tooling changes exercise real temporary Git repositories and recovery paths.
 Broaden regression coverage for changes crossing module boundaries.
 
+For upload work, prepare `uv sync --locked --dev --extra clearml`, then use locked
+`--no-sync` checks to retain the optional SDK dependencies. Keep adapter-double tests,
+real loopback HTTP tests and live ClearML/S3 evidence distinct. A missing authorized
+test identity is a live-integration gap, never permission to use another project's
+credentials. Upload import contracts cover core isolation, typed workflow ports,
+independent adapters and lazy/type-only/dynamic network imports.
+
 For documentation-only work, run
 `uv run pytest tests/test_architecture.py::test_local_documentation_links_resolve`,
 `git diff --check`, and inspect changed Markdown, anchors and command/config examples.

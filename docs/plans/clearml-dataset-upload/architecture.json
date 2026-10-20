@@ -1,0 +1,368 @@
+{
+  "schema_version": 1,
+  "task": "ClearML dataset upload",
+  "scope": [
+    "src/ed_killer/upload",
+    "src/ed_killer/csv_io.py",
+    "pyproject.toml",
+    "uv.lock",
+    "tests",
+    "README.md",
+    "AGENTS.md",
+    "docs",
+    "CHANGELOG.md",
+    ".github/workflows/check.yml"
+  ],
+  "impact": "modules",
+  "rules": "Native Markdown process; pure validator remains offline, upload adapters alone own network effects; exhaustive package layers and consumer isolation stay enforced.",
+  "modules": [
+    {
+      "id": "models",
+      "path": "src/ed_killer/upload/models.py",
+      "change": "add",
+      "responsibility": "Typed bundle and publication records",
+      "interface": "Validated API/metadata models and immutable orchestration records",
+      "layer": "Upload models",
+      "allowed_dependencies": [
+        "pydantic",
+        "pandas",
+        "ed_killer.models"
+      ],
+      "forbidden_dependencies": [
+        "cveta2",
+        "clearml_yolo",
+        "upload.remote",
+        "upload.files",
+        "upload.cli"
+      ],
+      "effects": "None",
+      "contracts": [
+        "layers",
+        "effects"
+      ]
+    },
+    {
+      "id": "ports",
+      "path": "src/ed_killer/upload/ports.py",
+      "change": "add",
+      "responsibility": "Typed effect boundaries",
+      "interface": "Protocols for datasets, API, files, roots and prompts",
+      "layer": "Upload ports",
+      "allowed_dependencies": [
+        "upload.models"
+      ],
+      "forbidden_dependencies": [
+        "cveta2",
+        "clearml_yolo",
+        "upload.remote",
+        "upload.files",
+        "upload.cli"
+      ],
+      "effects": "No effects; ports describe caller-injected effects",
+      "contracts": [
+        "layers",
+        "effects"
+      ]
+    },
+    {
+      "id": "classes",
+      "path": "src/ed_killer/upload/classes.py",
+      "change": "add",
+      "responsibility": "Stable class identity and alias reconciliation",
+      "interface": "reconcile_classes(previous, records) and class_lookup(classes)",
+      "layer": "Upload classes",
+      "allowed_dependencies": [
+        "upload.models"
+      ],
+      "forbidden_dependencies": [
+        "cveta2",
+        "clearml_yolo",
+        "upload.remote",
+        "upload.files",
+        "upload.cli"
+      ],
+      "effects": "None",
+      "contracts": [
+        "layers",
+        "effects"
+      ]
+    },
+    {
+      "id": "tasks",
+      "path": "src/ed_killer/upload/tasks.py",
+      "change": "add",
+      "responsibility": "Task inclusion and supersession evidence",
+      "interface": "derive_tasks(tables, clean) returns TaskManifest",
+      "layer": "Upload tasks",
+      "allowed_dependencies": [
+        "upload.models",
+        "ed_killer.cells"
+      ],
+      "forbidden_dependencies": [
+        "cveta2",
+        "clearml_yolo",
+        "upload.remote",
+        "upload.files",
+        "upload.cli"
+      ],
+      "effects": "None",
+      "contracts": [
+        "layers",
+        "effects"
+      ]
+    },
+    {
+      "id": "validation",
+      "path": "src/ed_killer/upload/validation.py",
+      "change": "add",
+      "responsibility": "Compose training validation and class policy",
+      "interface": "validate_bundle(frame, metadata, base_dir) returns BundleValidation",
+      "layer": "Upload validation",
+      "allowed_dependencies": [
+        "upload.models",
+        "upload.classes",
+        "ed_killer.validation",
+        "ed_killer.models",
+        "upload.paths",
+        "Pillow",
+        "ed_killer.cells"
+      ],
+      "forbidden_dependencies": [
+        "cveta2",
+        "clearml_yolo",
+        "upload.remote",
+        "upload.files",
+        "upload.cli"
+      ],
+      "effects": "Delegates full local decoding to existing media; owns supplemental native-format/minimum-side header inspection via Pillow; paths owns symlink resolution; no remote access",
+      "contracts": [
+        "layers",
+        "effects"
+      ]
+    },
+    {
+      "id": "paths",
+      "path": "src/ed_killer/upload/paths.py",
+      "change": "add",
+      "responsibility": "Local filesystem and S3-reference containment",
+      "interface": "LocalRoots.check_local_root/uncovered_paths/check_s3_paths and absolute_image_path",
+      "layer": "Upload paths",
+      "allowed_dependencies": [
+        "upload.models"
+      ],
+      "forbidden_dependencies": [
+        "cveta2",
+        "clearml_yolo"
+      ],
+      "effects": "Local path resolution and directory checks only",
+      "contracts": [
+        "layers",
+        "effects"
+      ]
+    },
+    {
+      "id": "files",
+      "path": "src/ed_killer/upload/files.py",
+      "change": "add",
+      "responsibility": "Strict fetch/YAML loading and durable local reports",
+      "interface": "LocalFiles.read_fetch/read_metadata/write_report",
+      "layer": "Upload files",
+      "allowed_dependencies": [
+        "upload.models",
+        "ed_killer.csv_io",
+        "ed_killer.reporting"
+      ],
+      "forbidden_dependencies": [
+        "cveta2",
+        "clearml_yolo"
+      ],
+      "effects": "Owns local source reads and unique report-directory writes",
+      "contracts": [
+        "layers",
+        "effects"
+      ]
+    },
+    {
+      "id": "remote",
+      "path": "src/ed_killer/upload/remote.py",
+      "change": "add",
+      "responsibility": "HTTP registry, ClearML versions and S3 root adapter",
+      "interface": "HttpClassApi, ClearMLStore and S3Roots implement ports",
+      "layer": "Upload remote",
+      "allowed_dependencies": [
+        "upload.models",
+        "ClearML SDK",
+        "urllib"
+      ],
+      "forbidden_dependencies": [
+        "cveta2",
+        "clearml_yolo"
+      ],
+      "effects": "Owns network and ClearML mutations after workflow approval",
+      "contracts": [
+        "layers",
+        "effects"
+      ]
+    },
+    {
+      "id": "workflow",
+      "path": "src/ed_killer/upload/workflow.py",
+      "change": "add",
+      "responsibility": "Validation-before-publication orchestration",
+      "interface": "run_upload(request, services) returns Publication or explicit cancellation/error",
+      "layer": "Upload workflow",
+      "allowed_dependencies": [
+        "upload.models",
+        "upload.ports",
+        "upload.classes",
+        "upload.tasks",
+        "upload.validation"
+      ],
+      "forbidden_dependencies": [
+        "cveta2",
+        "clearml_yolo",
+        "upload.remote",
+        "upload.files",
+        "upload.cli"
+      ],
+      "effects": "Calls injected ports; cannot construct SDK/filesystem adapters",
+      "contracts": [
+        "layers",
+        "effects"
+      ]
+    },
+    {
+      "id": "cli",
+      "path": "src/ed_killer/upload/cli.py",
+      "change": "add",
+      "responsibility": "Argument parsing, prompts and composition",
+      "interface": "main(argv) exits 0 finalized, 1 cancelled, 2 blocked/error",
+      "layer": "Upload cli",
+      "allowed_dependencies": [
+        "upload.workflow",
+        "upload.ports",
+        "upload.models",
+        "upload.files",
+        "upload.remote",
+        "upload.paths"
+      ],
+      "forbidden_dependencies": [
+        "cveta2",
+        "clearml_yolo"
+      ],
+      "effects": "Owns console interaction and constructs adapters",
+      "contracts": [
+        "layers",
+        "effects"
+      ]
+    },
+    {
+      "id": "csv",
+      "path": "src/ed_killer/csv_io.py",
+      "change": "modify",
+      "responsibility": "Reusable strict lexical CSV decoding",
+      "interface": "Extract read_csv while preserving validate_csv behavior",
+      "layer": "Existing input adapter",
+      "allowed_dependencies": [
+        "ed_killer.models",
+        "ed_killer.validation",
+        "pandas"
+      ],
+      "forbidden_dependencies": [
+        "ed_killer.upload"
+      ],
+      "effects": "Local CSV reads only",
+      "contracts": [
+        "layers",
+        "effects"
+      ]
+    },
+    {
+      "id": "initializer",
+      "path": "src/ed_killer/upload/__init__.py",
+      "change": "add",
+      "responsibility": "Inert optional upload package namespace",
+      "interface": "Importing the namespace creates no services or effects",
+      "layer": "Package facade",
+      "allowed_dependencies": [],
+      "forbidden_dependencies": [
+        "upload.cli",
+        "upload.remote",
+        "upload.workflow"
+      ],
+      "effects": "None; docstring only",
+      "contracts": [
+        "effects"
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "id": "layers",
+      "path": "pyproject.toml",
+      "status": "existing",
+      "rules": "Exhaustive downward layers including upload package; core cannot depend on upload; upload workflow depends on ports, never concrete adapters.",
+      "check": "imports"
+    },
+    {
+      "id": "effects",
+      "path": "tests/test_upload_architecture.py",
+      "status": "existing",
+      "rules": "SDK/network imports belong only to remote; core and pure policy cannot import adapters, consumers or remote SDKs, including lazy/type-only/dynamic edges.",
+      "check": "imports"
+    }
+  ],
+  "checks": [
+    {
+      "id": "imports",
+      "kind": "imports",
+      "command": "uv run --locked --no-sync lint-imports && uv run --locked --no-sync pytest tests/test_architecture.py tests/test_upload_architecture.py",
+      "expectation": "All layers pass and injected prohibited SDK/adapter/import edges fail",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-20-clearml-dataset-upload.md"
+      }
+    },
+    {
+      "id": "quality",
+      "kind": "behavior",
+      "command": "uv run --locked --no-sync pytest && uv run --locked --no-sync ruff check . && uv run --locked --no-sync ruff format --check . && uv run --locked --no-sync mypy && uv run --locked --no-sync vulture",
+      "expectation": "All behavioral, compatibility and static quality checks pass",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-20-clearml-dataset-upload.md"
+      }
+    },
+    {
+      "id": "package",
+      "kind": "behavior",
+      "command": "uv lock --check && uv build",
+      "expectation": "Lock/build and separately recorded isolated wheel and CLI checks pass",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-20-clearml-dataset-upload.md"
+      }
+    },
+    {
+      "id": "docs",
+      "kind": "documentation",
+      "command": "uv run --locked --no-sync pytest tests/test_architecture.py::test_local_documentation_links_resolve && git diff --check",
+      "expectation": "Local links and changed Markdown/examples validated",
+      "result": {
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "docs/evidence/2026-10-20-clearml-dataset-upload.md"
+      }
+    }
+  ],
+  "documentation": "Update README.md, AGENTS.md, docs/schema.md, docs/integration-plan.md, docs/development.md, task ledger and dated evidence.",
+  "review": {
+    "status": "accepted",
+    "reviewer": "Fresh independent /root/upload_release_review (requested gpt-6.1-sol, medium effort)",
+    "evidence": "docs/evidence/2026-10-20-clearml-dataset-upload.md",
+    "reconciliation": "Reviewed all task-owned tracked changes and untracked upload source/tests, CI, optional dependencies and docs against this record. No unrelated changes included. The prior interruption finding was reproduced and fixed, verified in full/focused/isolated-wheel checks and accepted in a fresh review. Live ClearML/S3 remains an explicit external integration gap; local architecture/code checks passed."
+  }
+}

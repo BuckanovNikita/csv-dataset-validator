@@ -11,7 +11,7 @@ import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-RELEASE_PACKAGES = {"python-semantic-release", "tomli", "pyyaml", "types-pyyaml"}
+RELEASE_PACKAGES = {"python-semantic-release", "tomli", "types-pyyaml"}
 QUALITY_HOOKS = {"ruff-format", "ruff-check", "mypy", "vulture", "architecture", "pytest", "uv-lock"}
 
 

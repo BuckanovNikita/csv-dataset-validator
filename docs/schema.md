@@ -102,7 +102,7 @@ original box must have finite, correctly ordered coordinates and meet the minimu
 geometry. The clipped box must also meet all minimums. Unknown or conflicting dimensions,
 nonfinite coordinates, reversed edges and undersized boxes are never repaired. With
 `check_images=True`, inspected local image sizes can supply bounds; disagreements with
-CSV dimensions prevent repair. No API contacts remote services.
+CSV dimensions prevent repair. These base validation APIs do not contact remote services.
 
 For clearml-yolo, malformed annotations quarantine their entire image, without task
 isolation. Cross-class pairs with IoU at or above the configured threshold (default
@@ -149,3 +149,14 @@ do not determine equality. For opaque objects or cyclic structures, a row-level
 `exact_comparison_unavailable` warning records the skipped exact comparison. Original
 cells remain intact and box IoU checking continues. The row is not rejected merely
 because an extra field cannot be compared.
+
+## Extended ClearML upload bundle
+
+The optional `ed-killer-upload` command wraps this base contract with class metadata,
+image-root containment, mandatory local image checks, split/trainability gates and
+task provenance. Its `dataset.csv` preserves extra columns but may normalize class
+aliases as well as apply accepted coordinate repairs. Its `dataset.yaml` records
+API numbers, empty-class flags, historical aliases and independent image roots;
+`tasks.yaml` records included and fully superseded completed tasks.
+See [the upload schema and workflow](upload.md) for exact fields and blocking rules.
+These additional rules do not change the standalone validator's metadata handling.

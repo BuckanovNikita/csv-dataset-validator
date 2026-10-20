@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## Unreleased
+
+### Documentation
+
+- Record Python compatibility release delivery
+  ([`30eeb55`](https://github.com/BuckanovNikita/ed-killer/commit/30eeb55f4c2b71cbd427c249fc823600fe33a2ce))
+
+
 ## v0.5.0 (2026-10-15)
 
 ### Documentation

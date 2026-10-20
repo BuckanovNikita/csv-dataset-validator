@@ -9,12 +9,22 @@ Validation uses positional lineage. Malformed annotations quarantine their image
 for cveta2 and their whole image for clearml-yolo. Duplicates only remove later rows.
 Only clearml-yolo may clip crossed edges strictly below 10 px with trustworthy dimensions
 and valid original/final minimum geometry; accepted coordinate repairs belong in clean
-only, while input and broken remain original. Never synthesize negatives or access remote
-services. Clearml-yolo ignores all metadata outside its eight required fields and optional
+only, while input and broken remain original. Never synthesize negatives. The core
+validator and its existing CLI remain offline. Clearml-yolo ignores all metadata
+outside its eight required fields and optional
 dimensions; cross-class conflicts quarantine images before same-class duplicate cleanup.
 
 Use Pydantic for configuration and issue models, Pandera for the complete field schema,
 and Loguru for CLI diagnostics. The core must not depend on either consuming application.
+
+The opt-in `ed-killer-upload` command uses the optional `clearml` dependency extra.
+Only `upload.remote` owns HTTP, ClearML and S3 access. Its workflow uses typed ports;
+policy modules stay independent of remote/file adapters. Bundle validation adds
+class policy, local media checks and training eligibility around the existing core.
+Keep all source rows available for full-image rejection reports and root coverage.
+Never create a remote dataset before validation, required reconciliation and explicit
+partial-upload consent finish. See [the upload contract](docs/upload.md) and
+[its architecture record](docs/plans/clearml-dataset-upload/architecture.json).
 
 Use the available shared `python-project-workflow` and
 `module-architecture-planning` skills, discovered through the active host's skill

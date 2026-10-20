@@ -17,12 +17,12 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python }}
-      - run: uv sync --dev --extra images --frozen
-      - run: uv run pytest
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run mypy
-      - run: uv run vulture
-      - run: uv run lint-imports
+      - run: uv sync --dev --extra clearml --frozen
+      - run: uv run --locked --no-sync pytest
+      - run: uv run --locked --no-sync ruff check .
+      - run: uv run --locked --no-sync ruff format --check .
+      - run: uv run --locked --no-sync mypy
+      - run: uv run --locked --no-sync vulture
+      - run: uv run --locked --no-sync lint-imports
       - run: uv lock --check
       - run: uv build

@@ -98,7 +98,7 @@ def test_import_contracts_reject_prohibited_edges(tmp_path, module, injected_sou
     output = result.stdout + result.stderr
     if module is None:
         assert result.returncode == 0, output
-        assert "3 kept, 0 broken" in output
+        assert "5 kept, 0 broken" in output
     else:
         assert result.returncode == 1, output
         assert "BROKEN" in output

@@ -9,15 +9,9 @@ from ed_killer.models import DatasetInputError, Profile, ValidationOptions, Vali
 from ed_killer.validation import validate_dataframe
 
 
-def validate_csv(
-    path: str | Path,
-    *,
-    profile: Profile,
-    options: ValidationOptions | None = None,
-) -> ValidationResult:
-    """Read UTF-8 CSV with literal cells, then validate it relative to its directory."""
+def read_csv(path: str | Path) -> pd.DataFrame:
+    """Read an unambiguous UTF-8 table, preserving literal cells and column order."""
     source = Path(path)
-    selected = options or ValidationOptions()
     try:
         with source.open(encoding="utf-8-sig", newline="") as stream:
             reader = csv.reader(stream, strict=True)
@@ -33,7 +27,18 @@ def validate_csv(
                 rows.append(row)
     except (OSError, UnicodeError, csv.Error) as error:
         raise DatasetInputError(f"Cannot read CSV {source}: {error}") from error
+    return pd.DataFrame(rows, columns=header, dtype=object)
+
+
+def validate_csv(
+    path: str | Path,
+    *,
+    profile: Profile,
+    options: ValidationOptions | None = None,
+) -> ValidationResult:
+    """Read UTF-8 CSV with literal cells, then validate it relative to its directory."""
+    source = Path(path)
+    selected = options or ValidationOptions()
+    frame = read_csv(source)
     effective = selected.model_copy(update={"base_dir": selected.base_dir or source.absolute().parent})
-    return validate_dataframe(
-        pd.DataFrame(rows, columns=header, dtype=object), profile=profile, options=effective
-    )
+    return validate_dataframe(frame, profile=profile, options=effective)

@@ -2,6 +2,12 @@
 
 Status: proposed integration only. This package does not modify or import either consumer.
 
+The standalone [ClearML upload command](upload.md) is implemented separately from
+these proposed in-process consumer integrations. It consumes the complete cveta2
+fetch partition and wraps the training profile with class/root/task policies before
+publishing a three-file bundle. Its remote effects are confined to `upload.remote`;
+the shared validation API below remains offline.
+
 ## Contract evidence
 
 The implementation was grounded in cveta2 v0.8.0 at `55e56b3` and clearml-yolo at
