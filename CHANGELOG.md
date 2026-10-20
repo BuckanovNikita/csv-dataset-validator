@@ -1,12 +1,17 @@
 # CHANGELOG
 
 
-## Unreleased
+## v0.6.0 (2026-10-20)
 
 ### Documentation
 
 - Record Python compatibility release delivery
   ([`30eeb55`](https://github.com/BuckanovNikita/ed-killer/commit/30eeb55f4c2b71cbd427c249fc823600fe33a2ce))
+
+### Features
+
+- Upload validated cveta2 bundles to ClearML
+  ([`99f9918`](https://github.com/BuckanovNikita/ed-killer/commit/99f9918a34365b789f968969039205bc1112db17))
 
 
 ## v0.5.0 (2026-10-15)
