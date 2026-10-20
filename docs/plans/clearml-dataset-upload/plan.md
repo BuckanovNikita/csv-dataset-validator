@@ -1,6 +1,6 @@
 # ClearML dataset upload
 
-Status: implementation and local code review complete; release pending. Live ClearML/S3 unverified.
+Status: implemented, reviewed, locally verified and released as v0.6.0. Live ClearML/S3 unverified.
 Approved conversational design, resumed 2026-10-20.
 
 ## Contract
@@ -71,7 +71,7 @@ for this feature without weakening release tooling isolation.
 - [x] Parent: documentation and complete integrated verification.
 - [x] Fresh independent review after integration and successful checks.
 - [x] Reconcile architecture acceptance and dated evidence.
-- [ ] Native release, explicit branch/tag pushes and task-resource cleanup.
+- [x] Native release, explicit branch/tag pushes and task-resource cleanup.
 
 Shared interfaces precede the three independent implementation workstreams.
 Delegates have exclusive file ownership and cannot delegate further. Parent owns
@@ -103,3 +103,7 @@ boundaries and explicit SDK doubles. See [dated evidence](../../evidence/2026-10
 The upload validator directly owns supplemental image-header checks; the existing
 media module still owns pixel decoding. `validation -> paths` is an explicit local
 filesystem dependency. CI prepares the upload extra and retains it with no-sync.
+
+The native hooks created feature commit `99f9918`, release commit `8448478` and
+annotated tag `v0.6.0`. The branch and explicit tag were pushed atomically. Temporary
+verification environments were removed; no live service datasets were created.

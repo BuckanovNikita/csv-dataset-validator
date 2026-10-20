@@ -110,5 +110,26 @@ The parent reconciled every task-owned source/test/configuration/documentation p
 including untracked additions, with the architecture record. No unrelated changes
 were excluded or modified. The architecture acceptance validator passed with the
 executed local gates and accepted review. This does not close the separate live
-integration gap. Release is pending; temporary environments remain for final
-package verification.
+integration gap.
+
+## Release delivery
+
+Installed the repository's native pre-commit and post-commit hooks. Inspected and
+staged the generated changelog update before committing. All contributor and
+release hooks passed without bypass:
+
+- Feature commit: `99f9918a34365b789f968969039205bc1112db17`.
+- Release commit: `8448478bdd982b8b1b7e628e38fe40cd7278aac7`.
+- Annotated Git tag: `v0.6.0`, pointing to that release commit.
+- Atomic push of `main` and `refs/tags/v0.6.0` to `origin` succeeded.
+
+Built the exact 0.6.0 wheel and source archive locally. Reinstalled that wheel in
+the isolated environments: the base package/help/missing-extra checks passed, and
+all **5** upload subprocess tests passed. No GitHub Release, assets or registry
+packages were published. The local development environment retains the locked
+upload/dev extra; this is separate from any global consumer installation.
+
+Removed the task-owned isolated Python 3.13 and wheel verification environments,
+their copied test and temporary pointer. Test HTTP listeners had already been
+closed. No shared service resources were created or modified. The source worktree
+was clean after release; this final documentation change records its delivery.
